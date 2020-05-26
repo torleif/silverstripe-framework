@@ -26,22 +26,22 @@ class FormRequestHandler extends RequestHandler
      * @config
      * @var array
      */
-    private static $allowed_actions = array(
+    private static $allowed_actions = [
         'handleField',
         'httpSubmission',
         'forTemplate',
-    );
+    ];
 
     /**
      * @config
      * @var array
      */
-    private static $url_handlers = array(
+    private static $url_handlers = [
         'field/$FieldName!' => 'handleField',
         'POST ' => 'httpSubmission',
         'GET ' => 'httpSubmission',
         'HEAD ' => 'httpSubmission',
-    );
+    ];
 
     /**
      * Form model being handled
@@ -169,13 +169,13 @@ class FormRequestHandler extends RequestHandler
                 // Break off querystring arguments included in the action
                 if (strpos($paramName, '?') !== false) {
                     list($paramName, $paramVars) = explode('?', $paramName, 2);
-                    $newRequestParams = array();
+                    $newRequestParams = [];
                     parse_str($paramVars, $newRequestParams);
                     $vars = array_merge((array)$vars, (array)$newRequestParams);
                 }
 
                 // Cleanup action_, _x and _y from image fields
-                $funcName = preg_replace(array('/^action_/','/_x$|_y$/'), '', $paramName);
+                $funcName = preg_replace(['/^action_/','/_x$|_y$/'], '', $paramName);
                 break;
             }
         }
@@ -217,7 +217,7 @@ class FormRequestHandler extends RequestHandler
 
         // Action handlers may throw ValidationExceptions.
         try {
-            // Or we can use the Valiator attached to the form
+            // Or we can use the Validator attached to the form
             $result = $this->form->validationResult();
             if (!$result->isValid()) {
                 return $this->getValidationErrorResponse($result);
@@ -225,28 +225,29 @@ class FormRequestHandler extends RequestHandler
 
             // First, try a handler method on the controller (has been checked for allowed_actions above already)
             $controller = $this->form->getController();
+            $args = [$funcName, $request, $vars];
             if ($controller && $controller->hasMethod($funcName)) {
                 $controller->setRequest($request);
-                return $controller->$funcName($vars, $this->form, $request, $this);
+                return $this->invokeFormHandler($controller, ...$args);
             }
 
             // Otherwise, try a handler method on the form request handler.
             if ($this->hasMethod($funcName)) {
-                return $this->$funcName($vars, $this->form, $request, $this);
+                return $this->invokeFormHandler($this, ...$args);
             }
 
             // Otherwise, try a handler method on the form itself
             if ($this->form->hasMethod($funcName)) {
-                return $this->form->$funcName($vars, $this->form, $request, $this);
+                return $this->invokeFormHandler($this->form, ...$args);
             }
 
             // Check for inline actions
             $field = $this->checkFieldsForAction($this->form->Fields(), $funcName);
             if ($field) {
-                return $field->$funcName($vars, $this->form, $request, $this);
+                return $this->invokeFormHandler($field, ...$args);
             }
         } catch (ValidationException $e) {
-            // The ValdiationResult contains all the relevant metadata
+            // The ValidationResult contains all the relevant metadata
             $result = $e->getResult();
             $this->form->loadMessagesFrom($result);
             return $this->getValidationErrorResponse($result);
@@ -260,7 +261,7 @@ class FormRequestHandler extends RequestHandler
             );
         }
 
-        return $this->httpError(404);
+        return $this->httpError(404, "Could not find a suitable form-action callback function");
     }
 
     /**
@@ -514,5 +515,21 @@ class FormRequestHandler extends RequestHandler
     public function forTemplate()
     {
         return $this->form->forTemplate();
+    }
+
+    /**
+     * @param $subject
+     * @param string $funcName
+     * @param HTTPRequest $request
+     * @param array $vars
+     * @return mixed
+     */
+    private function invokeFormHandler($subject, string $funcName, HTTPRequest $request, array $vars)
+    {
+        $this->extend('beforeCallFormHandler', $request, $funcName, $vars, $this->form, $subject);
+        $result = $subject->$funcName($vars, $this->form, $request, $this);
+        $this->extend('afterCallFormHandler', $request, $funcName, $vars, $this->form, $subject, $result);
+
+        return $result;
     }
 }

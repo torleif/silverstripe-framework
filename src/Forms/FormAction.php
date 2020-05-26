@@ -145,15 +145,15 @@ class FormAction extends FormField
      * @param array $properties
      * @return DBHTMLText
      */
-    public function Field($properties = array())
+    public function Field($properties = [])
     {
         $properties = array_merge(
             $properties,
-            array(
+            [
                 'Name' => $this->action,
                 'Title' => ($this->description && !$this->useButtonTag) ? $this->description : $this->Title(),
                 'UseButtonTag' => $this->useButtonTag
-            )
+            ]
         );
 
         return parent::Field($properties);
@@ -163,7 +163,7 @@ class FormAction extends FormField
      * @param array $properties
      * @return DBHTMLText
      */
-    public function FieldHolder($properties = array())
+    public function FieldHolder($properties = [])
     {
         return $this->Field($properties);
     }
@@ -184,15 +184,20 @@ class FormAction extends FormField
 
     public function getAttributes()
     {
-        return array_merge(
+        $attributes = array_merge(
             parent::getAttributes(),
-            array(
+            [
                 'disabled' => ($this->isReadonly() || $this->isDisabled()),
-                'value' => $this->Title(),
-                'type' => $this->getInputType(),
-                'title' => ($this->useButtonTag) ? $this->description : null,
-            )
+                'value'    => $this->Title(),
+                'type'     => $this->getInputType(),
+            ]
         );
+
+        // Override title with description if supplied
+        if ($this->getDescription()) {
+            $attributes['title'] = $this->getDescription();
+        }
+        return $attributes;
     }
 
     /**

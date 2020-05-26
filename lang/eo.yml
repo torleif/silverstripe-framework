@@ -34,11 +34,7 @@ eo:
     LOGGED_IN_ERROR: 'Vi devas ensaluti por ŝanĝi vian pasvorton.'
     MAXIMUM: 'Pasvorto devas esti ne pli ol {min} signojn longa.'
     SHOWONCLICKTITLE: 'Ŝangi Pasvorton'
-  SilverStripe\Forms\CurrencyField:
-    CURRENCYSYMBOL: $
   SilverStripe\Forms\DateField:
-    NOTSET: 'ne agordita'
-    TODAY: hodiaŭ
     VALIDDATEFORMAT2: 'Bonvole enigu validan datan formaton ({format})'
     VALIDDATEMAXDATE: 'Necesas ke via dato estu pli aĝa ol, aŭ egala al la maksimuma permesita dato ({date})'
     VALIDDATEMINDATE: 'Necesas ke via dato estu pli nova ol, aŭ egala al la minimuma permesita dato ({date})'
@@ -48,7 +44,6 @@ eo:
     VALIDDATETIMEMINDATE: 'Necesas ke via dato estu pli nova ol, aŭ egala al la minimuma permesita dato ({date})'
   SilverStripe\Forms\DropdownField:
     CHOOSE: (Elekti)
-    CHOOSE_MODEL: '(Elekti {name})'
     SOURCE_VALIDATION: 'Bonvolu elekti valoron el la listo donita. {value} ne estas valida agordo'
   SilverStripe\Forms\EmailField:
     VALIDATION: 'Bonvolu enigi readreson'
@@ -78,7 +73,6 @@ eo:
     LinkExisting: 'Ligi ekzistantajn'
     NewRecord: 'Novaj {type}'
     NoItemsFound: 'Neniu elemento troviĝis'
-    OpenFilter: 'Malfermi serĉon kaj filtrilon'
     PRINTEDAT: 'Presita ĉe'
     PRINTEDBY: 'Presita de'
     PlaceHolder: 'Serĉi je {type}'
@@ -100,17 +94,12 @@ eo:
     Save: Konservi
   SilverStripe\Forms\GridField\GridFieldEditButton:
     EDIT: Redakti
-  SilverStripe\Forms\GridField\GridFieldFilterHeader:
-    Search: 'Serĉi por {name}'
-    SearchFormFaliure: 'Ne eblis generi serĉan formularon'
   SilverStripe\Forms\GridField\GridFieldGroupDeleteAction:
     UnlinkSelfFailure: 'Ne povas forigi vin el ĉi tiu grupo; vi perdus administrajn rajtojn'
   SilverStripe\Forms\GridField\GridFieldPaginator:
     OF: de
     Page: Paĝo
     View: Vido
-  SilverStripe\Forms\GridField\GridFieldViewButton:
-    VIEW: Vido
   SilverStripe\Forms\MoneyField:
     FIELDLABELAMOUNT: Kvanto
     FIELDLABELCURRENCY: Kurzo

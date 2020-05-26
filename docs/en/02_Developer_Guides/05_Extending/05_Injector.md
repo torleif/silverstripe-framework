@@ -1,5 +1,8 @@
+---
 title: Injector
 summary: Introduction to using Dependency Injection within SilverStripe.
+icon: code
+---
 
 # Injector
 
@@ -107,10 +110,10 @@ The [Configuration YAML](../configuration) does the hard work of configuring tho
 **app/_config/app.yml**
 
 ```yml
-Injector:
+SilverStripe\Core\Injector\Injector:
   PermissionService:
     class: MyCustomPermissionService
-  MyController
+  MyController:
     properties:
       textProperty: 'My Text Value'
 ```
@@ -246,7 +249,7 @@ SilverStripe\Core\Injector\Injector:
     class: RestrictivePermissionService
     properties:
       database: %$MySQLDatabase
-  MySQLDatabase
+  MySQLDatabase:
     constructor:
       0: 'dbusername'
       1: 'dbpassword'

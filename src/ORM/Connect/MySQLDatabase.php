@@ -109,7 +109,7 @@ class MySQLDatabase extends Database implements TransactionManager
         if (empty($mode)) {
             return;
         }
-        $this->preparedQuery("SET sql_mode = ?", array($mode));
+        $this->preparedQuery("SET sql_mode = ?", [$mode]);
     }
 
     /**
@@ -122,7 +122,7 @@ class MySQLDatabase extends Database implements TransactionManager
         if (empty($timezone)) {
             return;
         }
-        $this->preparedQuery("SET SESSION time_zone = ?", array($timezone));
+        $this->preparedQuery("SET SESSION time_zone = ?", [$timezone]);
     }
 
     public function supportsCollations()
@@ -143,6 +143,12 @@ class MySQLDatabase extends Database implements TransactionManager
     /**
      * The core search engine, used by this class and its subclasses to do fun stuff.
      * Searches both SiteTree and File.
+     *
+     * Caution: While the $keywords argument is escaped for safe use in a query context,
+     * you need to ensure that it is also a valid boolean expression when opting into $booleanSearch.
+     * For example, the "asterisk" and "greater than" characters have a special meaning in this context,
+     * and can only be placed in certain parts of the keywords. You will need to preprocess and sanitise
+     * user input accordingly in order to avoid query errors.
      *
      * @param array $classesToSearch
      * @param string $keywords Keywords as a string.
@@ -179,7 +185,7 @@ class MySQLDatabase extends Database implements TransactionManager
         $keywords = $this->escapeString($keywords);
         $htmlEntityKeywords = htmlentities($keywords, ENT_NOQUOTES, 'UTF-8');
 
-        $extraFilters = array($pageClass => '', $fileClass => '');
+        $extraFilters = [$pageClass => '', $fileClass => ''];
 
         $boolean = '';
         if ($booleanSearch) {
@@ -221,8 +227,9 @@ class MySQLDatabase extends Database implements TransactionManager
             $match[$fileClass] = "MATCH (Name, Title) AGAINST ('$keywords' $boolean) AND ClassName = '$fileClassSQL'";
 
             // We make the relevance search by converting a boolean mode search into a normal one
-            $relevanceKeywords = str_replace(array('*', '+', '-'), '', $keywords);
-            $htmlEntityRelevanceKeywords = str_replace(array('*', '+', '-'), '', $htmlEntityKeywords);
+            $booleanChars = ['*', '+', '@', '-', '(', ')', '<', '>'];
+            $relevanceKeywords = str_replace($booleanChars, '', $keywords);
+            $htmlEntityRelevanceKeywords = str_replace($booleanChars, '', $htmlEntityKeywords);
             $relevance[$pageClass] = "MATCH (Title, MenuTitle, Content, MetaDescription) "
                     . "AGAINST ('$relevanceKeywords') "
                     . "+ MATCH (Title, MenuTitle, Content, MetaDescription) AGAINST ('$htmlEntityRelevanceKeywords')";
@@ -233,8 +240,8 @@ class MySQLDatabase extends Database implements TransactionManager
         }
 
         // Generate initial DataLists and base table names
-        $lists = array();
-        $sqlTables = array($pageClass => '', $fileClass => '');
+        $lists = [];
+        $sqlTables = [$pageClass => '', $fileClass => ''];
         foreach ($classesToSearch as $class) {
             $lists[$class] = DataList::create($class)->where($notMatch . $match[$class] . $extraFilters[$class]);
             $sqlTables[$class] = '"' . DataObject::getSchema()->tableName($class) . '"';
@@ -243,26 +250,26 @@ class MySQLDatabase extends Database implements TransactionManager
         $charset = static::config()->get('charset');
 
         // Make column selection lists
-        $select = array(
-            $pageClass => array(
+        $select = [
+            $pageClass => [
                 "ClassName", "{$sqlTables[$pageClass]}.\"ID\"", "ParentID",
                 "Title", "MenuTitle", "URLSegment", "Content",
                 "LastEdited", "Created",
                 "Name" => "_{$charset}''",
                 "Relevance" => $relevance[$pageClass], "CanViewType"
-            ),
-            $fileClass => array(
+            ],
+            $fileClass => [
                 "ClassName", "{$sqlTables[$fileClass]}.\"ID\"", "ParentID",
                 "Title", "MenuTitle" => "_{$charset}''", "URLSegment" => "_{$charset}''", "Content" => "_{$charset}''",
                 "LastEdited", "Created",
                 "Name",
                 "Relevance" => $relevance[$fileClass], "CanViewType" => "NULL"
-            ),
-        );
+            ],
+        ];
 
         // Process and combine queries
-        $querySQLs = array();
-        $queryParameters = array();
+        $querySQLs = [];
+        $queryParameters = [];
         $totalCount = 0;
         foreach ($lists as $class => $list) {
             /** @var SQLSelect $query */
@@ -271,7 +278,7 @@ class MySQLDatabase extends Database implements TransactionManager
             // There's no need to do all that joining
             $query->setFrom($sqlTables[$class]);
             $query->setSelect($select[$class]);
-            $query->setOrderBy(array());
+            $query->setOrderBy([]);
 
             $querySQLs[] = $query->sql($parameters);
             $queryParameters = array_merge($queryParameters, $parameters);
@@ -283,7 +290,7 @@ class MySQLDatabase extends Database implements TransactionManager
         // Get records
         $records = $this->preparedQuery($fullQuery, $queryParameters);
 
-        $objects = array();
+        $objects = [];
 
         foreach ($records as $record) {
             $objects[] = new $record['ClassName']($record);
@@ -430,7 +437,7 @@ class MySQLDatabase extends Database implements TransactionManager
     {
         preg_match_all('/%(.)/', $format, $matches);
         foreach ($matches[1] as $match) {
-            if (array_search($match, array('Y', 'm', 'd', 'H', 'i', 's', 'U')) === false) {
+            if (array_search($match, ['Y', 'm', 'd', 'H', 'i', 's', 'U']) === false) {
                 user_error('formattedDatetimeClause(): unsupported format character %' . $match, E_USER_WARNING);
             }
         }

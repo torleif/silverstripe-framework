@@ -45,7 +45,7 @@ class DBInt extends DBField
     {
         $output = new ArrayList();
         for ($i = 0; $i < $this->value; $i++) {
-            $output->push(new ArrayData(array( 'Number' => $i + 1 )));
+            $output->push(new ArrayData([ 'Number' => $i + 1 ]));
         }
 
         return $output;
@@ -58,7 +58,7 @@ class DBInt extends DBField
 
     public function scaffoldFormField($title = null, $params = null)
     {
-        return new NumericField($this->name, $title);
+        return NumericField::create($this->name, $title);
     }
 
     public function nullValue()

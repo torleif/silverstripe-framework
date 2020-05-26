@@ -184,7 +184,7 @@ class DataList extends ViewableData implements SS_List, Filterable, Sortable, Li
      * Returns the SQL query that will be used to get this DataList's records.  Good for debugging. :-)
      *
      * @param array $parameters Out variable for parameters required for this query
-     * @return string The resulting SQL query (may be paramaterised)
+     * @return string The resulting SQL query (may be parameterised)
      */
     public function sql(&$parameters = [])
     {
@@ -363,9 +363,9 @@ class DataList extends ViewableData implements SS_List, Filterable, Sortable, Li
     }
 
     /**
-     * Return a copy of this list which only includes items with these charactaristics
+     * Return a copy of this list which only includes items with these characteristics
      *
-     * @see SS_List::filter()
+     * @see Filterable::filter()
      *
      * @example $list = $list->filter('Name', 'bob'); // only bob in the list
      * @example $list = $list->filter('Name', array('aziz', 'bob'); // aziz and bob in list
@@ -422,7 +422,7 @@ class DataList extends ViewableData implements SS_List, Filterable, Sortable, Li
     }
 
     /**
-     * Return a copy of this list which contains items matching any of these charactaristics.
+     * Return a copy of this list which contains items matching any of these characteristics.
      *
      * @example // only bob in the list
      *          $list = $list->filterAny('Name', 'bob');
@@ -500,6 +500,16 @@ class DataList extends ViewableData implements SS_List, Filterable, Sortable, Li
      *
      * Unlike getRelationName, this is immutable and will fallback to the quoted field
      * name if not a relation.
+     *
+     * Example use (simple WHERE condition on data sitting in a related table):
+     *
+     * <code>
+     *  $columnName = null;
+     *  $list = Page::get()
+     *    ->applyRelation('TaxonomyTerms.ID', $columnName)
+     *    ->where([$columnName => 'my value']);
+     * </code>
+     *
      *
      * @param string $field Name of field or relation to apply
      * @param string &$columnName Quoted column name
@@ -1131,6 +1141,16 @@ class DataList extends ViewableData implements SS_List, Filterable, Sortable, Li
             $this->remove($item);
         }
         return $this;
+    }
+
+    /**
+     * Shuffle the datalist using a random function provided by the SQL engine
+     *
+     * @return $this
+     */
+    public function shuffle()
+    {
+        return $this->sort(DB::get_conn()->random());
     }
 
     /**

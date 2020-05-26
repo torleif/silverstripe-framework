@@ -3,6 +3,7 @@
 namespace SilverStripe\ORM\Connect;
 
 use SilverStripe\Core\Config\Config;
+use SilverStripe\Dev\Deprecation;
 use PDO;
 use PDOStatement;
 use InvalidArgumentException;
@@ -71,7 +72,7 @@ class PDOConnector extends DBConnector implements TransactionManager
      *
      * @var array
      */
-    protected $cachedStatements = array();
+    protected $cachedStatements = [];
 
     /**
      * Driver
@@ -90,7 +91,7 @@ class PDOConnector extends DBConnector implements TransactionManager
      */
     public function flushStatements()
     {
-        $this->cachedStatements = array();
+        $this->cachedStatements = [];
     }
 
     /**
@@ -110,7 +111,7 @@ class PDOConnector extends DBConnector implements TransactionManager
         // Generate new statement
         $statement = $this->pdoConnection->prepare(
             $sql,
-            array(PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY)
+            [PDO::ATTR_CURSOR => PDO::CURSOR_FWDONLY]
         );
 
         // Wrap in a PDOStatementHandle, to cache column metadata
@@ -135,6 +136,9 @@ class PDOConnector extends DBConnector implements TransactionManager
 
     public function connect($parameters, $selectDB = false)
     {
+        Deprecation::notice('4.5', 'Use native database drivers in favour of PDO. '
+            . 'https://github.com/silverstripe/silverstripe-framework/issues/8598');
+
         $this->flushStatements();
 
         // Note that we don't select the database here until explicitly
@@ -142,7 +146,7 @@ class PDOConnector extends DBConnector implements TransactionManager
         $this->driver = $parameters['driver'];
 
         // Build DSN string
-        $dsn = array();
+        $dsn = [];
 
         // Typically this is false, but some drivers will request this
         if ($selectDB) {
@@ -432,7 +436,7 @@ class PDOConnector extends DBConnector implements TransactionManager
      * @param array $parameters
      * @return PDOQuery
      */
-    protected function prepareResults(PDOStatementHandle $statement, $errorLevel, $sql, $parameters = array())
+    protected function prepareResults(PDOStatementHandle $statement, $errorLevel, $sql, $parameters = [])
     {
 
         // Catch error

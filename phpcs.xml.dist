@@ -18,11 +18,16 @@
 		<exclude name="Generic.Files.LineLength.TooLong" />
 		<exclude name="PEAR.Functions.ValidDefaultValue.NotAtEnd" />
 	</rule>
-	<rule phpcbf-only="true" ref="Squiz.Strings.ConcatenationSpacing">
+	<rule ref="Squiz.Strings.ConcatenationSpacing">
 		<properties>
 			<property name="spacing" value="1" />
 			<property name="ignoreNewlines" value="true"/>
 		</properties>
+	</rule>
+
+	<!-- use short array syntax (less thirdparty) -->
+	<rule ref="Generic.Arrays.DisallowLongArraySyntax">
+		<exclude-pattern>/thirdparty/*</exclude-pattern>
 	</rule>
 
 	<!-- include php files only -->

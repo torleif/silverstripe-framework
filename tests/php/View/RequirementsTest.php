@@ -114,10 +114,10 @@ class RequirementsTest extends SapphireTest
         // require two of those files as combined includes
         $backend->combineFiles(
             'RequirementsTest_bc.js',
-            array(
+            [
                 'javascript/RequirementsTest_b.js',
                 'javascript/RequirementsTest_c.js'
-            )
+            ]
         );
     }
 
@@ -133,10 +133,10 @@ class RequirementsTest extends SapphireTest
         // require files as combined includes
         $backend->combineFiles(
             'RequirementsTest_bc.js',
-            array(
+            [
                 'javascript/RequirementsTest_b.js',
                 'javascript/RequirementsTest_c.js'
-            )
+            ]
         );
     }
 
@@ -564,12 +564,12 @@ class RequirementsTest extends SapphireTest
         );
         $backend->combineFiles(
             'style.css',
-            array(
+            [
                 'css/RequirementsTest_b.css',
                 'css/RequirementsTest_c.css',
                 'css/RequirementsTest_d.css',
                 'public/css/RequirementsTest_e.css',
-            )
+            ]
         );
 
         $html = $backend->includeInHTML(self::$html_template);
@@ -641,6 +641,9 @@ class RequirementsTest extends SapphireTest
         /** @var Requirements_Backend $backend */
         $backend = Injector::inst()->create(Requirements_Backend::class);
         $this->setupRequirements($backend);
+
+        $generator = Injector::inst()->get(ResourceURLGenerator::class);
+        $generator->setNonceStyle('mtime');
 
         $backend->javascript('javascript/RequirementsTest_a.js?test=1&test=2&test=3');
         $backend->css('css/RequirementsTest_a.css?test=1&test=2&test=3');
@@ -784,9 +787,9 @@ class RequirementsTest extends SapphireTest
         );
         $backend->clear();
         $data = new ArrayData(
-            array(
+            [
             'FailTest' => false,
-            )
+            ]
         );
         $data->renderWith('RequirementsTest_Conditionals');
         $this->assertFileNotIncluded($backend, 'css', 'css/RequirementsTest_a.css');
@@ -1037,7 +1040,7 @@ EOS
         $includedFiles = $this->getBackendFiles($backend, $type);
 
         if (is_array($files)) {
-            $failedMatches = array();
+            $failedMatches = [];
             foreach ($files as $file) {
                 if (!array_key_exists($file, $includedFiles)) {
                     $failedMatches[] = $file;
@@ -1065,7 +1068,7 @@ EOS
     {
         $includedFiles = $this->getBackendFiles($backend, $type);
         if (is_array($files)) {
-            $failedMatches = array();
+            $failedMatches = [];
             foreach ($files as $file) {
                 if (array_key_exists($file, $includedFiles)) {
                     $failedMatches[] = $file;
@@ -1108,7 +1111,7 @@ EOS
             case 'script':
                 return $backend->getJavascript();
         }
-        return array();
+        return [];
     }
 
     public function testAddI18nJavascript()
@@ -1182,5 +1185,30 @@ EOS
         $this->assertArrayHasKey('i18n/en_US.js', $actual);
         $this->assertArrayHasKey('i18n/en-us.js', $actual);
         $this->assertArrayHasKey('i18n/fr.js', $actual);
+    }
+
+    public function testSriAttributes()
+    {
+        /** @var Requirements_Backend $backend */
+        $backend = Injector::inst()->create(Requirements_Backend::class);
+        $this->setupRequirements($backend);
+
+        $backend->javascript('javascript/RequirementsTest_a.js', ['integrity' => 'abc', 'crossorigin' => 'use-credentials']);
+        $backend->css('css/RequirementsTest_a.css', null, ['integrity' => 'def', 'crossorigin' => 'anonymous']);
+        $html = $backend->includeInHTML(self::$html_template);
+
+        /* Javascript has correct attributes */
+        $this->assertRegExp(
+            '#<script type="application/javascript" src=".*/javascript/RequirementsTest_a.js.*" integrity="abc" crossorigin="use-credentials"#',
+            $html,
+            'javascript has correct sri attributes'
+        );
+
+        /* CSS has correct attributes */
+        $this->assertRegExp(
+            '#<link .*href=".*/RequirementsTest_a\.css.*" integrity="def" crossorigin="anonymous"#',
+            $html,
+            'css has correct sri attributes'
+        );
     }
 }

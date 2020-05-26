@@ -1,4 +1,7 @@
+---
 title: How to write a FunctionalTest
+summary: Expand your testing capabilities with integrations tests
+---
 
 # How to Write a FunctionalTest
 
@@ -44,7 +47,7 @@ class HomePageTest extends FunctionalTest
         $page = $this->get('home/');
 
         $this->assertExactHTMLMatchBySelector("#Welcome", [
-            'Welcome Back'
+            'Welcome back'
         ]);
     }
 }

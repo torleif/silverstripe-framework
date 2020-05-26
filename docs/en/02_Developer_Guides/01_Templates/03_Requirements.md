@@ -1,5 +1,8 @@
+---
 title: Requirements
 summary: How to include and require other assets in your templates such as javascript and CSS files.
+iconBrand: js
+---
 
 # Requirements
 
@@ -46,7 +49,8 @@ SilverStripe projects should not track the "resources" directory in their source
 
 ### Exposing assets in the web root
 
-SilverStripe projects ship with `silverstripe/vendor-plugin`. This Composer plugin automatically tries to expose assets from your project and installed modules after installation, or after an update.
+SilverStripe projects ship with [silverstripe/vendor-plugin](https://github.com/silverstripe/vendor-plugin).
+This Composer plugin automatically tries to expose assets from your project and installed modules after installation, or after an update.
 
 Developers can explicitly expose static assets by calling `composer vendor-expose`. This is necessary after updating your `resources-dir` or `expose` configuration in your `composer.json` file.
 
@@ -78,15 +82,15 @@ When rendered in HTML code, these URLs will be rewritten to their matching path 
 
 **<my-module-dir>/templates/SomeTemplate.ss**
 
-```ss
+```
 <% require css("<my-module-dir>/css/some_file.css") %>
 <% require themedCSS("some_themed_file") %>
 <% require javascript("<my-module-dir>/javascript/some_file.js") %>
 ```
 
-<div class="alert" markdown="1">
+[alert]
 Requiring assets from the template is restricted compared to the PHP API.
-</div>
+[/alert]
 
 ## PHP Requirements API
 
@@ -205,10 +209,10 @@ Requirements::combine_files(
 );
 ```
 
-<div class="alert" markdown='1'>
+[alert]
 To make debugging easier in your local environment, combined files is disabled when running your application in `dev`
 mode. You can re-enable dev combination by setting `Requirements_Backend.combine_in_dev` to true.
-</div>
+[/alert]
 
 ### Configuring combined file storage
 
@@ -304,10 +308,10 @@ SilverStripe\View\Requirements::combine_files('print.css', $printStylesheets, 'p
 By default, all requirements files are flushed (deleted) when ?flush querystring parameter is set.
 This can be disabled by setting the `Requirements.disable_flush_combined` config to `true`.
 
-<div class="alert" markdown='1'>
+[alert]
 When combining CSS files, take care of relative urls, as these will not be re-written to match
 the destination location of the resulting combined CSS.
-</div>
+[/alert]
 
 ### Combined JS Files
 
@@ -365,10 +369,10 @@ SilverStripe\Core\Injector\Injector:
       Minifier: %$MyProject\MyMinifier
 ```
 
-<div class="alert" markdown='1'>
+[alert]
 While the framework does afford you the option of minification at runtime, we recommend using one of many frontend build
 tools to do this for you, e.g. [Webpack](https://webpack.github.io/), [Gulp](http://gulpjs.com/), or [Grunt](https://gruntjs.com/).
-</div>
+[/alert]
 
 
 ## Clearing assets
@@ -383,9 +387,9 @@ Clears all defined requirements. You can also clear specific requirements.
 Requirements::clear('modulename/javascript/some-lib.js');
 ```
 
-<div class="alert" markdown="1">
+[alert]
 Depending on where you call this command, a Requirement might be *re-included* afterwards.
-</div>
+[/alert]
 
 ## Blocking
 
@@ -400,20 +404,20 @@ version in a custom location. This assumes you have tested your application with
 Requirements::block('silverstripe/admin:thirdparty/jquery/jquery.js');
 ```
 
-<div class="alert" markdown="1">
+[alert]
 The CMS also uses the `Requirements` system, and its operation can be affected by `block()` calls. Avoid this by 
 limiting the scope of your blocking operations, e.g. in `init()` of your controller.
-</div>
+[/alert]
 
 ## Inclusion Order
 
 Requirements acts like a stack, where everything is rendered sequentially in the order it was included. There is no way
 to change inclusion-order, other than using *Requirements::clear* and rebuilding the whole set of requirements. 
 
-<div class="alert" markdown="1">
+[alert]
 Inclusion order is both relevant for CSS and Javascript files in terms of dependencies, inheritance and overlays - be 
 careful when messing with the order of requirements.
-</div>
+[/alert]
 
 ## Javascript placement
 
@@ -436,7 +440,7 @@ Requirements::set_write_js_to_body(false);
 
 ## Direct resource urls
 
-In templates you can use the `$resourcePath()` or `$resourceURL()` helper methods to inject links to
+In templates, you can use the `$resourcePath()` or `$resourceURL()` helper methods to inject links to
 resources directly. If you want to link to resources within a specific module you can use 
 the `vendor/module:some/path/to/file.jpg` syntax.
 

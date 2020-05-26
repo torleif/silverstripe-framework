@@ -16,7 +16,7 @@ class DataQueryTest extends SapphireTest
 
     protected static $fixture_file = 'DataQueryTest.yml';
 
-    protected static $extra_dataobjects = array(
+    protected static $extra_dataobjects = [
         DataQueryTest\ObjectA::class,
         DataQueryTest\ObjectB::class,
         DataQueryTest\ObjectC::class,
@@ -24,10 +24,12 @@ class DataQueryTest extends SapphireTest
         DataQueryTest\ObjectE::class,
         DataQueryTest\ObjectF::class,
         DataQueryTest\ObjectG::class,
+        DataQueryTest\ObjectH::class,
+        DataQueryTest\ObjectI::class,
         SQLSelectTest\TestObject::class,
         SQLSelectTest\TestBase::class,
         SQLSelectTest\TestChild::class,
-    );
+    ];
 
     public function testSortByJoinedFieldRetainsSourceInformation()
     {
@@ -263,7 +265,7 @@ class DataQueryTest extends SapphireTest
     {
         $query = new DataQuery(DataQueryTest\ObjectE::class);
         $result = $query->column('Title');
-        $this->assertEquals(array('First', 'Second', 'Last'), $result);
+        $this->assertEquals(['First', 'Second', 'Last'], $result);
     }
 
     public function testDistinct()
@@ -294,6 +296,32 @@ class DataQueryTest extends SapphireTest
         $query->where(DB::get_conn()->comparisonClause('"MyDate"', '1988-03-04%'));
         $this->assertGreaterThan(0, $query->count(), "Couldn't find MyDate");
         static::resetDBSchema(true);
+    }
+
+    public function testSurrogateFieldSort()
+    {
+        $query = new DataQuery(DataQueryTest\ObjectE::class);
+        $query->sort(
+            sprintf(
+                '(case when "Title" = %s then 1 else 0 end)',
+                DB::get_conn()->quoteString('Second')
+            ),
+            'DESC',
+            true
+        );
+        $query->sort('SortOrder', 'ASC', false);
+        $query->sort(
+            sprintf(
+                '(case when "Title" = %s then 0 else 1 end)',
+                DB::get_conn()->quoteString('Fourth')
+            ),
+            'DESC',
+            false
+        );
+        $this->assertEquals(
+            $query->execute()->column('Title'),
+            $query->column('Title')
+        );
     }
 
     public function testComparisonClauseDateStartsWith()
@@ -345,11 +373,11 @@ class DataQueryTest extends SapphireTest
         $query = new DataQuery(DataQueryTest\ObjectC::class);
         $query->sort('"SortOrder"');
         $query->where(
-            array(
-            '"DataQueryTest_C"."Title" = ?' => array('First')
-            )
+            [
+            '"DataQueryTest_C"."Title" = ?' => ['First']
+            ]
         );
-        $result = $query->getFinalisedQuery(array('Title'));
+        $result = $query->getFinalisedQuery(['Title']);
         $from = $result->getFrom();
         $this->assertContains('DataQueryTest_C', array_keys($from));
         $this->assertNotContains('DataQueryTest_E', array_keys($from));
@@ -358,13 +386,13 @@ class DataQueryTest extends SapphireTest
         $query = new DataQuery(DataQueryTest\ObjectC::class);
         $query->sort('"SortOrder"');
         $query->where(
-            array(
-            '"DataQueryTest_C"."Title" = ? OR "DataQueryTest_E"."SortOrder" > ?' => array(
+            [
+            '"DataQueryTest_C"."Title" = ? OR "DataQueryTest_E"."SortOrder" > ?' => [
                 'First', 2
-            )
-            )
+            ]
+            ]
         );
-        $result = $query->getFinalisedQuery(array('Title'));
+        $result = $query->getFinalisedQuery(['Title']);
         $from = $result->getFrom();
 
         // Check that including "SortOrder" prompted inclusion of DataQueryTest_E table
@@ -416,5 +444,26 @@ class DataQueryTest extends SapphireTest
         $this->assertCount(2, $result);
         $this->assertContains('Bar', $result);
         $this->assertContains('Foo', $result);
+    }
+
+    /**
+     * Tests that sorting against multiple relationships is working
+     */
+    public function testMultipleRelationSort()
+    {
+        $query = new DataQuery(DataQueryTest\ObjectH::class);
+        $query->applyRelation('ManyTestEs');
+        $query->applyRelation('ManyTestIs');
+        $query->sort([
+            '"manytestes_DataQueryTest_E"."SortOrder"',
+            '"manytestis_DataQueryTest_I"."SortOrder"',
+            '"SortOrder"',
+        ]);
+
+        $titles = $query->column('Name');
+
+        $this->assertEquals('First', $titles[0]);
+        $this->assertEquals('Second', $titles[1]);
+        $this->assertEquals('Last', $titles[2]);
     }
 }

@@ -10,14 +10,14 @@ abstract class DBString extends DBField
     /**
      * @var array
      */
-    private static $casting = array(
+    private static $casting = [
         "LimitCharacters" => "Text",
         "LimitCharactersToClosestWord" => "Text",
         "LimitWordCount" => "Text",
         "LowerCase" => "Text",
         "UpperCase" => "Text",
         "Plain" => "Text",
-    );
+    ];
 
     /**
      * Set the default value for "nullify empty"
@@ -77,7 +77,7 @@ abstract class DBString extends DBField
      */
     public function getNullifyEmpty()
     {
-        return $this->options['nullifyEmpty'];
+        return !empty($this->options['nullifyEmpty']);
     }
 
     /**
@@ -99,7 +99,7 @@ abstract class DBString extends DBField
         }
 
         // Return "empty" value
-        if ($this->options['nullifyEmpty'] || $value === null) {
+        if ($this->getNullifyEmpty() || $value === null) {
             return null;
         }
         return '';

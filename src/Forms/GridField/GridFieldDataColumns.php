@@ -15,19 +15,19 @@ class GridFieldDataColumns implements GridField_ColumnProvider
     /**
      * @var array
      */
-    public $fieldCasting = array();
+    public $fieldCasting = [];
 
     /**
      * @var array
      */
-    public $fieldFormatting = array();
+    public $fieldFormatting = [];
 
     /**
      * This is the columns that will be visible
      *
      * @var array
      */
-    protected $displayFields = array();
+    protected $displayFields = [];
 
     /**
      * Modify the list of columns displayed in the table.
@@ -154,7 +154,7 @@ class GridFieldDataColumns implements GridField_ColumnProvider
     {
         // Find the data column for the given named column
         $columns = $this->getDisplayFields($gridField);
-        $columnInfo = $columns[$columnName];
+        $columnInfo = array_key_exists($columnName, $columns) ? $columns[$columnName] : null;
 
         // Allow callbacks
         if (is_array($columnInfo) && isset($columnInfo['callback'])) {
@@ -186,7 +186,7 @@ class GridFieldDataColumns implements GridField_ColumnProvider
      */
     public function getColumnAttributes($gridField, $record, $columnName)
     {
-        return array('class' => 'col-' . preg_replace('/[^\w]/', '-', $columnName));
+        return ['class' => 'col-' . preg_replace('/[^\w]/', '-', $columnName)];
     }
 
     /**
@@ -208,9 +208,9 @@ class GridFieldDataColumns implements GridField_ColumnProvider
             $title = $columns[$column]['title'];
         }
 
-        return array(
+        return [
             'title' => $title,
-        );
+        ];
     }
 
     /**
@@ -253,14 +253,14 @@ class GridFieldDataColumns implements GridField_ColumnProvider
             // If the value is an object, we do one of two things
             if (method_exists($value, 'Nice')) {
                 // If it has a "Nice" method, call that & make sure the result is safe
-                $value = Convert::raw2xml($value->Nice());
+                $value = nl2br(Convert::raw2xml($value->Nice()));
             } else {
                 // Otherwise call forTemplate - the result of this should already be safe
                 $value = $value->forTemplate();
             }
         } else {
             // Otherwise, just treat as a text string & make sure the result is safe
-            $value = Convert::raw2xml($value);
+            $value = nl2br(Convert::raw2xml($value));
         }
 
         return $value;

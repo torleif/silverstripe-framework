@@ -16,11 +16,22 @@ en:
     TEXT1: 'Here is your'
     TEXT2: 'password reset link'
     TEXT3: for
+  SilverStripe\Control\Middleware\ConfirmationMiddleware\GetParameter:
+    CONFIRMATION_NAME: '"{key}" GET parameter'
+  SilverStripe\Control\Middleware\ConfirmationMiddleware\Url:
+    CONFIRMATION_DESCRIPTION: 'The URL is: "{url}"'
+    CONFIRMATION_NAME: 'URL is protected'
+  SilverStripe\Control\Middleware\ConfirmationMiddleware\UrlPathStartswith:
+    CONFIRMATION_DESCRIPTION: 'The complete URL is: "{url}"'
+    CONFIRMATION_NAME: 'URL begins with "{path}"'
   SilverStripe\Control\RequestProcessor:
     INVALID_REQUEST: 'Invalid request'
     REQUEST_ABORTED: 'Request aborted'
   SilverStripe\Core\Manifest\VersionProvider:
     VERSIONUNKNOWN: Unknown
+  SilverStripe\Dev\DevConfirmationController:
+    INFO_DESCRIPTION: 'Confirm potentially dangerous operation'
+    INFO_TITLE: 'Security Confirmation'
   SilverStripe\Forms\CheckboxField:
     NOANSWER: 'No'
     YESANSWER: 'Yes'
@@ -100,6 +111,8 @@ en:
     NEW: 'Add new record'
     NEXT: 'Go to next record'
     PREVIOUS: 'Go to previous record'
+    EditPermissionsFailure: 'It seems you don''t have the necessary permissions to edit "{ObjectTitle}"'
+    ViewPermissionsFailure: 'It seems you don''t have the necessary permissions to view "{ObjectTitle}"'
   SilverStripe\Forms\GridField\GridFieldEditButton:
     EDIT: Edit
   SilverStripe\Forms\GridField\GridFieldFilterHeader:
@@ -113,6 +126,10 @@ en:
     View: View
   SilverStripe\Forms\GridField\GridFieldViewButton:
     VIEW: View
+  SilverStripe\Forms\HTMLEditor\TinyMCEConfig:
+    BEST_FIT: 'Best fit'
+    ORIGINAL: Original
+    PIXEL_WIDTH: '{width} pixels'
   SilverStripe\Forms\MoneyField:
     FIELDLABELAMOUNT: Amount
     FIELDLABELCURRENCY: Currency
@@ -181,6 +198,12 @@ en:
     SUCCESS: Success
     SUCCESSCONTENT: '<p>Login success. If you are not automatically redirected <a target="_top" href="{link}">click here</a></p>'
     SUCCESS_TITLE: 'Login successful'
+  SilverStripe\Security\Confirmation\Form:
+    CONFIRM: 'Run the action'
+    EMPTY_TITLE: 'Nothing to confirm'
+    REFUSE: Cancel
+  SilverStripe\Security\Confirmation\Handler:
+    FORM_TITLE: 'Confirm potentially dangerous action'
   SilverStripe\Security\DefaultAdminService:
     DefaultAdminFirstname: 'Default Admin'
   SilverStripe\Security\Group:
@@ -255,7 +278,7 @@ en:
     SURNAME: Surname
     VALIDATIONADMINLOSTACCESS: 'Cannot remove all admin groups from your profile'
     ValidationIdentifierFailed: 'Can''t overwrite existing member #{id} with identical identifier ({name} = {value}))'
-    WELCOMEBACK: 'Welcome Back, {firstname}'
+    WELCOMEBACK: 'Welcome back, {firstname}'
     YOUROLDPASSWORD: 'Your old password'
     belongs_many_many_Groups: Groups
     db_Locale: 'Interface Locale'

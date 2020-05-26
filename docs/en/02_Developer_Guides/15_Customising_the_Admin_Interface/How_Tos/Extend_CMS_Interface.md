@@ -1,3 +1,8 @@
+---
+title: Extend the CMS interface
+summary: Customise the UI of the CMS backend
+---
+
 # How to extend the CMS interface
 
 ## Introduction
@@ -28,7 +33,6 @@ Copy the template markup of the base implementation at `templates/SilverStripe/A
 from the `silverstripe/admin` module
 into `app/templates/SilverStripe/Admin/Includes/LeftAndMain_MenuList.ss`. It will automatically be picked up by
 the CMS logic. Add a new section into the `<ul class="cms-menu__list">`	
-
 
 ```ss
 ...
@@ -139,10 +143,10 @@ Add the following code to a new file `app/src/BookmarkedLeftAndMainExtension.php
 ```php
 use SilverStripe\Admin\LeftAndMainExtension;
 
-class BookmarkedPagesLeftAndMainExtension extends LeftAndMainExtension 
+class BookmarkedPagesLeftAndMainExtension extends LeftAndMainExtension
 {
 
-    public function BookmarkedPages() 
+    public function BookmarkedPages()
     {
         return Page::get()->filter("IsBookmarked", 1);
     }
@@ -233,9 +237,9 @@ We can also easily create new drop-up menus by defining new tabs within the
 $fields->addFieldToTab('ActionMenus.MyDropUp', FormAction::create('minor', 'Minor action in a new drop-up'));
 ```
 
-<div class="hint" markdown='1'>
+[hint]
 Empty tabs will be automatically removed from the `FieldList` to prevent clutter.
-</div>
+[/hint]
 
 To make the actions more user-friendly you can also use alternating buttons as
 detailed in the [CMS Alternating Button](cms_alternating_button)
@@ -243,7 +247,7 @@ how-to.
 
 ## React-rendered UI
 For sections of the admin that are rendered with React, Redux, and GraphQL, please refer
-to [the introduction on those concepts](../07_ReactJS_Redux_and_GraphQL.md), 
+to [the introduction on those concepts](../reactjs_redux_and_graphql/),
 as well as their respective How-To's in this section.
 
 ### Implementing handlers
@@ -256,18 +260,18 @@ applicable controller actions to it:
 ```php
 use SilverStripe\Admin\LeftAndMainExtension;
 
-class CustomActionsExtension extends LeftAndMainExtension 
+class CustomActionsExtension extends LeftAndMainExtension
 {
-    
+
     private static $allowed_actions = [
         'sampleAction'
     ];
-    
+
     public function sampleAction()
     {
         // Create the web
     }
-    
+
 }
 
 ```

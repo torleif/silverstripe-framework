@@ -36,16 +36,16 @@ use SilverStripe\View\TemplateGlobalProvider;
 class Security extends Controller implements TemplateGlobalProvider
 {
 
-    private static $allowed_actions = array(
+    private static $allowed_actions = [
+        'basicauthlogin',
+        'changepassword',
         'index',
         'login',
         'logout',
-        'basicauthlogin',
         'lostpassword',
         'passwordsent',
-        'changepassword',
         'ping',
-    );
+    ];
 
     /**
      * If set to TRUE to prevent sharing of the session across several sites
@@ -166,7 +166,7 @@ class Security extends Controller implements TemplateGlobalProvider
 
     /**
      * Enable or disable recording of login attempts
-     * through the {@link LoginRecord} object.
+     * through the {@link LoginAttempt} object.
      *
      * @config
      * @var boolean $login_recording
@@ -366,7 +366,7 @@ class Security extends Controller implements TemplateGlobalProvider
             if ($configMessageSet = static::config()->get('default_message_set')) {
                 $messageSet = $configMessageSet;
             } else {
-                $messageSet = array(
+                $messageSet = [
                     'default' => _t(
                         __CLASS__ . '.NOTEPAGESECURED',
                         "That page is secured. Enter your credentials below and we will send "
@@ -377,12 +377,12 @@ class Security extends Controller implements TemplateGlobalProvider
                         "You don't have access to this page.  If you have another account that "
                             . "can access that page, you can log in again below."
                     )
-                );
+                ];
             }
         }
 
         if (!is_array($messageSet)) {
-            $messageSet = array('default' => $messageSet);
+            $messageSet = ['default' => $messageSet];
         }
 
         $member = static::getCurrentUser();
@@ -416,14 +416,16 @@ class Security extends Controller implements TemplateGlobalProvider
             $controller->extend('permissionDenied', $member);
 
             return $response;
-        } else {
-            $message = $messageSet['default'];
         }
+        $message = $messageSet['default'];
 
-        list($messageText, $messageCast) = $parseMessage($message);
-        static::singleton()->setSessionMessage($messageText, ValidationResult::TYPE_WARNING, $messageCast);
+        $request = $controller->getRequest();
+        if ($request->hasSession()) {
+            list($messageText, $messageCast) = $parseMessage($message);
+            static::singleton()->setSessionMessage($messageText, ValidationResult::TYPE_WARNING, $messageCast);
 
-        $controller->getRequest()->getSession()->set("BackURL", $_SERVER['REQUEST_URI']);
+            $request->getSession()->set("BackURL", $_SERVER['REQUEST_URI']);
+        }
 
         // TODO AccessLogEntry needs an extension to handle permission denied errors
         // Audit logging hook
@@ -503,7 +505,7 @@ class Security extends Controller implements TemplateGlobalProvider
     /**
      * Perform pre-login checking and prepare a response if available prior to login
      *
-     * @return HTTPResponse Substitute response object if the login process should be curcumvented.
+     * @return HTTPResponse Substitute response object if the login process should be circumvented.
      * Returns null if should proceed as normal.
      */
     protected function preLogin()
@@ -524,7 +526,7 @@ class Security extends Controller implements TemplateGlobalProvider
         }
 
         // If arriving on the login page already logged in, with no security error, and a ReturnURL then redirect
-        // back. The login message check is neccesary to prevent infinite loops where BackURL links to
+        // back. The login message check is necessary to prevent infinite loops where BackURL links to
         // an action that triggers Security::permissionFailure.
         // This step is necessary in cases such as automatic redirection where a user is authenticated
         // upon landing on an SSL secured site and is automatically logged in, or some other case
@@ -660,7 +662,6 @@ class Security extends Controller implements TemplateGlobalProvider
             ->getSession()
             ->clear("Security.Message");
     }
-
 
     /**
      * Show the "login" page

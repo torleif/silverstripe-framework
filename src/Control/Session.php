@@ -103,7 +103,7 @@ class Session
      * @config
      * @var array
      */
-    private static $session_ips = array();
+    private static $session_ips = [];
 
     /**
      * @config
@@ -145,6 +145,14 @@ class Session
     private static $sessionCacheLimiter = '';
 
     /**
+     * Invalidate the session if user agent header changes between request. Defaults to true. Disabling this checks is
+     * not recommended.
+     * @var bool
+     * @config
+     */
+    private static $strict_user_agent_check = true;
+
+    /**
      * Session data.
      * Will be null if session has not been started
      *
@@ -178,7 +186,7 @@ class Session
      *
      * @var array
      */
-    protected $changedData = array();
+    protected $changedData = [];
 
     /**
      * Get user agent for this request
@@ -217,18 +225,15 @@ class Session
      */
     public function init(HTTPRequest $request)
     {
-
         if (!$this->isStarted() && $this->requestContainsSessionId($request)) {
             $this->start($request);
         }
 
         // Funny business detected!
-        if (isset($this->data['HTTP_USER_AGENT'])) {
+        if (self::config()->get('strict_user_agent_check') && isset($this->data['HTTP_USER_AGENT'])) {
             if ($this->data['HTTP_USER_AGENT'] !== $this->userAgent($request)) {
                 $this->clearAll();
-                $this->destroy();
-                $this->started = false;
-                $this->start($request);
+                $this->restart($request);
             }
         }
     }
@@ -241,7 +246,7 @@ class Session
     public function restart(HTTPRequest $request)
     {
         $this->destroy();
-        $this->init($request);
+        $this->start($request);
     }
 
     /**
@@ -369,6 +374,7 @@ class Session
         // http://nz1.php.net/manual/en/function.session-destroy.php
         unset($_SESSION);
         $this->data = null;
+        $this->started = false;
     }
 
     /**
@@ -541,7 +547,7 @@ class Session
         foreach ($data as $k => $v) {
             if (is_array($v)) {
                 if (!isset($dest[$k]) || !is_array($dest[$k])) {
-                    $dest[$k] = array();
+                    $dest[$k] = [];
                 }
                 $this->recursivelyApply($v, $dest[$k]);
             } else {
@@ -632,6 +638,18 @@ class Session
                 $sourceVal = $this->nestedValue($key, $source);
                 $this->recursivelyApplyChanges($changed, $sourceVal, $destVal);
             }
+        }
+    }
+
+    /**
+     * Regenerate session id
+     *
+     * @internal This is for internal use only. Isn't a part of public API.
+     */
+    public function regenerateSessionId()
+    {
+        if (!headers_sent() && session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
         }
     }
 }

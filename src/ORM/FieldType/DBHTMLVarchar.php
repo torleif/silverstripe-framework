@@ -17,12 +17,12 @@ class DBHTMLVarchar extends DBVarchar
 
     private static $escape_type = 'xml';
 
-    private static $casting = array(
+    private static $casting = [
         // DBString conversion / summary methods
         // Not overridden, but returns HTML instead of plain text.
         "LowerCase" => "HTMLFragment",
         "UpperCase" => "HTMLFragment",
-    );
+    ];
 
     /**
      * Enable shortcode parsing on this field
@@ -69,7 +69,7 @@ class DBHTMLVarchar extends DBVarchar
      *
      * @return $this
      */
-    public function setOptions(array $options = array())
+    public function setOptions(array $options = [])
     {
         if (array_key_exists("shortcodes", $options)) {
             $this->setProcessShortcodes(!!$options["shortcodes"]);
@@ -124,7 +124,7 @@ class DBHTMLVarchar extends DBVarchar
 
     public function scaffoldFormField($title = null, $params = null)
     {
-        return HTMLEditorField::create($this->name, $title, 1);
+        return HTMLEditorField::create($this->name, $title);
     }
 
     public function scaffoldSearchField($title = null)

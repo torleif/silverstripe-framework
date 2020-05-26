@@ -26,13 +26,13 @@ class ClassInfo
      * @internal
      * @var array
      */
-    private static $_cache_all_tables = array();
+    private static $_cache_all_tables = [];
 
     /**
      * @internal
      * @var array Cache for {@link ancestry()}.
      */
-    private static $_cache_ancestry = array();
+    private static $_cache_ancestry = [];
 
     /**
      * Cache for parse_class_spec
@@ -48,7 +48,7 @@ class ClassInfo
      * @internal
      * @var array
      */
-    private static $_cache_methods = array();
+    private static $_cache_methods = [];
 
     /**
      * Cache for class_name
@@ -99,7 +99,7 @@ class ClassInfo
     public static function reset_db_cache()
     {
         self::$_cache_all_tables = null;
-        self::$_cache_ancestry = array();
+        self::$_cache_ancestry = [];
     }
 
     /**
@@ -113,7 +113,7 @@ class ClassInfo
     public static function getValidSubClasses($class = SiteTree::class, $includeUnbacked = false)
     {
         if (is_string($class) && !class_exists($class)) {
-            return array();
+            return [];
         }
 
         $class = self::class_name($class);
@@ -352,7 +352,7 @@ class ClassInfo
         $lMethod = strtolower($method);
         $lCompclass = strtolower($compclass);
         if (!isset(self::$_cache_methods[$lClass])) {
-            self::$_cache_methods[$lClass] = array();
+            self::$_cache_methods[$lClass] = [];
         }
 
         if (!array_key_exists($lMethod, self::$_cache_methods[$lClass])) {
@@ -425,11 +425,11 @@ class ClassInfo
 
         $tokens = token_get_all("<?php $classSpec");
         $class = null;
-        $args = array();
+        $args = [];
 
         // Keep track of the current bucket that we're putting data into
         $bucket = &$args;
-        $bucketStack = array();
+        $bucketStack = [];
         $hadNamespace = false;
         $currentKey = null;
 
@@ -511,12 +511,12 @@ class ClassInfo
                         break;
 
                     case T_ARRAY:
-                        $result = array();
+                        $result = [];
                         break;
                 }
             } else {
                 if ($tokenName === '[') {
-                    $result = array();
+                    $result = [];
                 } elseif (($tokenName === ')' || $tokenName === ']') && !empty($bucketStack)) {
                     // Store the bucket we're currently working on
                     $oldBucket = $bucket;
@@ -543,7 +543,7 @@ class ClassInfo
                 }
 
                 // If we've just pushed an array, that becomes our new bucket
-                if ($result === array()) {
+                if ($result === []) {
                     // Fetch the key that the array was pushed to
                     end($bucket);
                     $key = key($bucket);
@@ -559,5 +559,41 @@ class ClassInfo
         $result = [$class, $args];
         static::$_cache_parse[$classSpec] = $result;
         return $result;
+    }
+
+    /**
+     * Returns a list of classes with a particular extension applied
+     *
+     * This reflects all extensions added (or removed) both via the configuration API as well as dynamically
+     * using Extensible::add_extension() and Extensible::remove_extension().
+     *
+     * @param string $extensionClass        Extension class name
+     * @param string $baseClassOrObject     Class or object to find subclasses of with the extension applied
+     * @param bool $includeBaseClass        Include the base class itself if it has the extension applied?
+     * @return string[] Class names with the extension applied
+     * @throws \ReflectionException
+     */
+    public static function classesWithExtension(
+        string $extensionClass,
+        string $baseClassOrObject = DataObject::class,
+        bool $includeBaseClass = false
+    ): array {
+        // get class names
+        $baseClass = self::class_name($baseClassOrObject);
+
+        // get a list of all subclasses for a given class
+        $classes = ClassInfo::subclassesFor($baseClass, $includeBaseClass);
+
+        // include the base class if required
+        if ($includeBaseClass) {
+            $classes = array_merge([strtolower($baseClass) => $baseClass], $classes);
+        }
+
+        // only keep classes with the Extension applied
+        $classes = array_filter($classes, function ($class) use ($extensionClass) {
+            return Extensible::has_extension($class, $extensionClass);
+        });
+
+        return $classes;
     }
 }

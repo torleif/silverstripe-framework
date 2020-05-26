@@ -14,6 +14,7 @@ use SilverStripe\Control\RequestProcessor;
 use SilverStripe\Control\Tests\DirectorTest\TestController;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Core\Environment;
 use SilverStripe\Core\Kernel;
 use SilverStripe\Dev\SapphireTest;
 
@@ -26,10 +27,14 @@ class DirectorTest extends SapphireTest
         TestController::class,
     ];
 
+    private $originalEnvType;
+
     protected function setUp()
     {
         parent::setUp();
         Director::config()->set('alternate_base_url', 'http://www.mysite.com:9090/');
+
+        $this->originalEnvType = Environment::getEnv('SS_ENVIRONMENT_TYPE');
 
         // Ensure redirects enabled on all environments and global state doesn't affect the tests
         CanonicalURLMiddleware::singleton()
@@ -37,6 +42,12 @@ class DirectorTest extends SapphireTest
             ->setForceSSLPatterns([])
             ->setEnabledEnvs(true);
         $this->expectedRedirect = null;
+    }
+
+    protected function tearDown(...$args)
+    {
+        Environment::setEnv('SS_ENVIRONMENT_TYPE', $this->originalEnvType);
+        parent::tearDown(...$args);
     }
 
     protected function getExtraRoutes()
@@ -84,7 +95,7 @@ class DirectorTest extends SapphireTest
         $_SERVER['REQUEST_URI'] = "http://www.mysite.com:9090/mysite/sub-page/";
 
         //test empty / local urls
-        foreach (array('', './', '.') as $url) {
+        foreach (['', './', '.'] as $url) {
             $this->assertEquals("http://www.mysite.com:9090/mysite/", Director::absoluteURL($url, Director::BASE));
             $this->assertEquals("http://www.mysite.com:9090/", Director::absoluteURL($url, Director::ROOT));
             $this->assertEquals("http://www.mysite.com:9090/mysite/sub-page/", Director::absoluteURL($url, Director::REQUEST));
@@ -406,7 +417,7 @@ class DirectorTest extends SapphireTest
     }
 
     /**
-     * Tests isDev, isTest, isLive set from querystring
+     * Tests isDev, isTest, isLive cannot be set from querystring
      */
     public function testQueryIsEnvironment()
     {
@@ -422,46 +433,49 @@ class DirectorTest extends SapphireTest
         /** @var Kernel $kernel */
         $kernel = Injector::inst()->get(Kernel::class);
         $kernel->setEnvironment(null);
+        Environment::setEnv('SS_ENVIRONMENT_TYPE', Kernel::LIVE);
+
+        $this->assertTrue(Director::isLive());
 
         // Test isDev=1
         $_GET['isDev'] = '1';
-        $this->assertTrue(Director::isDev());
+        $this->assertFalse(Director::isDev());
         $this->assertFalse(Director::isTest());
-        $this->assertFalse(Director::isLive());
+        $this->assertTrue(Director::isLive());
 
         // Test persistence
         unset($_GET['isDev']);
-        $this->assertTrue(Director::isDev());
+        $this->assertFalse(Director::isDev());
         $this->assertFalse(Director::isTest());
-        $this->assertFalse(Director::isLive());
+        $this->assertTrue(Director::isLive());
 
         // Test change to isTest
         $_GET['isTest'] = '1';
         $this->assertFalse(Director::isDev());
-        $this->assertTrue(Director::isTest());
-        $this->assertFalse(Director::isLive());
+        $this->assertFalse(Director::isTest());
+        $this->assertTrue(Director::isLive());
 
         // Test persistence
         unset($_GET['isTest']);
         $this->assertFalse(Director::isDev());
-        $this->assertTrue(Director::isTest());
-        $this->assertFalse(Director::isLive());
+        $this->assertFalse(Director::isTest());
+        $this->assertTrue(Director::isLive());
     }
 
     public function testResetGlobalsAfterTestRequest()
     {
-        $_GET = array('somekey' => 'getvalue');
-        $_POST = array('somekey' => 'postvalue');
-        $_COOKIE = array('somekey' => 'cookievalue');
+        $_GET = ['somekey' => 'getvalue'];
+        $_POST = ['somekey' => 'postvalue'];
+        $_COOKIE = ['somekey' => 'cookievalue'];
 
         $cookies = Injector::inst()->createWithArgs(
             Cookie_Backend::class,
-            array(array('somekey' => 'sometestcookievalue'))
+            [['somekey' => 'sometestcookievalue']]
         );
 
         Director::test(
             'errorpage?somekey=sometestgetvalue',
-            array('somekey' => 'sometestpostvalue'),
+            ['somekey' => 'sometestpostvalue'],
             null,
             null,
             null,
@@ -490,8 +504,8 @@ class DirectorTest extends SapphireTest
     {
         $tests = [];
         $fixture = ['somekey' => 'sometestvalue'];
-        foreach (array('get', 'post') as $method) {
-            foreach (array('return%sValue', 'returnRequestValue', 'returnCookieValue') as $testfunction) {
+        foreach (['get', 'post'] as $method) {
+            foreach (['return%sValue', 'returnRequestValue', 'returnCookieValue'] as $testfunction) {
                 $url = 'TestController/' . sprintf($testfunction, ucfirst($method))
                     . '?' . http_build_query($fixture);
                 $tests[] = [$url, $fixture, $method];
@@ -515,7 +529,7 @@ class DirectorTest extends SapphireTest
             strtoupper($method),
             null,
             null,
-            Injector::inst()->createWithArgs(Cookie_Backend::class, array($fixture))
+            Injector::inst()->createWithArgs(Cookie_Backend::class, [$fixture])
         );
 
         $this->assertInstanceOf(HTTPResponse::class, $getresponse, 'Director::test() returns HTTPResponse');
@@ -532,13 +546,13 @@ class DirectorTest extends SapphireTest
         Director::test('en-nz/myaction/myid/myotherid', null, null, null, null, null, null, $request);
 
         $this->assertEquals(
-            array(
+            [
                 'Controller' => TestController::class,
                 'Action' => 'myaction',
                 'ID' => 'myid',
                 'OtherID' => 'myotherid',
                 'Locale' => 'en_NZ'
-            ),
+            ],
             $request->params()
         );
     }
@@ -610,7 +624,7 @@ class DirectorTest extends SapphireTest
         $this->expectExceptionRedirect('https://www.mysite.com:9090/admin');
         Director::mockRequest(function (HTTPRequest $request) {
             Injector::inst()->registerService($request, HTTPRequest::class);
-            Director::forceSSL(array('/^admin/'));
+            Director::forceSSL(['/^admin/']);
         }, 'http://www.mysite.com:9090/admin');
     }
 
@@ -620,7 +634,7 @@ class DirectorTest extends SapphireTest
         $this->expectExceptionRedirect('https://www.mysite.com:9090/Security/login');
         Director::mockRequest(function (HTTPRequest $request) {
             Injector::inst()->registerService($request, HTTPRequest::class);
-            Director::forceSSL(array('/^Security/'));
+            Director::forceSSL(['/^Security/']);
         }, 'http://www.mysite.com:9090/Security/login');
     }
 
@@ -629,14 +643,14 @@ class DirectorTest extends SapphireTest
         // Not on same url should not trigger redirect
         $response = Director::mockRequest(function (HTTPRequest $request) {
             Injector::inst()->registerService($request, HTTPRequest::class);
-            Director::forceSSL(array('/^admin/'));
+            Director::forceSSL(['/^admin/']);
         }, 'http://www.mysite.com:9090/normal-page');
         $this->assertNull($response, 'Non-matching patterns do not trigger redirect');
 
         // nested url should not triger redirect either
         $response = Director::mockRequest(function (HTTPRequest $request) {
             Injector::inst()->registerService($request, HTTPRequest::class);
-            Director::forceSSL(array('/^admin/', '/^Security/'));
+            Director::forceSSL(['/^admin/', '/^Security/']);
         }, 'http://www.mysite.com:9090/just-another-page/sub-url');
         $this->assertNull($response, 'Non-matching patterns do not trigger redirect');
     }
@@ -647,7 +661,7 @@ class DirectorTest extends SapphireTest
         $this->expectExceptionRedirect('https://secure.mysite.com/admin');
         Director::mockRequest(function (HTTPRequest $request) {
             Injector::inst()->registerService($request, HTTPRequest::class);
-            return Director::forceSSL(array('/^admin/'), 'secure.mysite.com');
+            return Director::forceSSL(['/^admin/'], 'secure.mysite.com');
         }, 'http://www.mysite.com:9090/admin');
     }
 
@@ -657,7 +671,7 @@ class DirectorTest extends SapphireTest
         $this->expectExceptionRedirect('https://secure.mysite.com:81/admin');
         Director::mockRequest(function (HTTPRequest $request) {
             Injector::inst()->registerService($request, HTTPRequest::class);
-            return Director::forceSSL(array('/^admin/'), 'secure.mysite.com:81');
+            return Director::forceSSL(['/^admin/'], 'secure.mysite.com:81');
         }, 'http://www.mysite.com:9090/admin');
     }
 
@@ -742,9 +756,9 @@ class DirectorTest extends SapphireTest
         Director::config()->remove('alternate_base_url');
 
         // nothing available
-        $headers = array(
+        $headers = [
             'HTTP_X_FORWARDED_PROTOCOL', 'HTTPS', 'SSL'
-        );
+        ];
         foreach ($headers as $header) {
             if (isset($_SERVER[$header])) {
                 unset($_SERVER['HTTP_X_FORWARDED_PROTOCOL']);
@@ -842,7 +856,7 @@ class DirectorTest extends SapphireTest
     {
         $filter = new DirectorTest\TestRequestFilter;
 
-        $processor = new RequestProcessor(array($filter));
+        $processor = new RequestProcessor([$filter]);
 
         Injector::inst()->registerService($processor, RequestProcessor::class);
         $response = Director::test('some-dummy-url');

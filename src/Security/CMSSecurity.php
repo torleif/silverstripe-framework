@@ -19,10 +19,10 @@ use SilverStripe\View\SSViewer;
  */
 class CMSSecurity extends Security
 {
-    private static $allowed_actions = array(
+    private static $allowed_actions = [
         'login',
         'success'
-    );
+    ];
 
     /**
      * Enable in-cms reauthentication
@@ -39,9 +39,11 @@ class CMSSecurity extends Security
         // Assign default cms theme and replace user-specified themes
         SSViewer::set_themes(LeftAndMain::config()->uninherited('admin_themes'));
 
-        // Core styles / vendor scripts
-        Requirements::javascript('silverstripe/admin: client/dist/js/vendor.js');
-        Requirements::css('silverstripe/admin: client/dist/styles/bundle.css');
+        if (ModuleLoader::getModule('silverstripe/admin')) {
+            // Core styles / vendor scripts
+            Requirements::javascript('silverstripe/admin: client/dist/js/vendor.js');
+            Requirements::css('silverstripe/admin: client/dist/styles/bundle.css');
+        }
     }
 
     public function login($request = null, $service = Authenticator::CMS_LOGIN)
@@ -124,7 +126,7 @@ class CMSSecurity extends Security
             __CLASS__ . '.INVALIDUSER',
             '<p>Invalid user. <a target="_top" href="{link}">Please re-authenticate here</a> to continue.</p>',
             'Message displayed to user if their session cannot be restored',
-            array('link' => $loginURLATT)
+            ['link' => $loginURLATT]
         );
         $response = $this->getResponse();
         $response->setStatusCode(200);
@@ -182,11 +184,11 @@ PHP
 
         // Get redirect url
         $controller = $this->getResponseController(_t(__CLASS__ . '.SUCCESS', 'Success'));
-        $backURLs = array(
+        $backURLs = [
             $this->getRequest()->requestVar('BackURL'),
             $this->getRequest()->getSession()->get('BackURL'),
             Director::absoluteURL(AdminRootController::config()->get('url_base'), true),
-        );
+        ];
         $backURL = null;
         foreach ($backURLs as $backURL) {
             if ($backURL && Director::is_site_url($backURL)) {
@@ -195,14 +197,14 @@ PHP
         }
 
         // Show login
-        $controller = $controller->customise(array(
+        $controller = $controller->customise([
             'Content' => DBField::create_field(DBHTMLText::class, _t(
                 __CLASS__ . '.SUCCESSCONTENT',
                 '<p>Login success. If you are not automatically redirected ' . '<a target="_top" href="{link}">click here</a></p>',
                 'Login message displayed in the cms popup once a user has re-authenticated themselves',
-                array('link' => Convert::raw2att($backURL))
+                ['link' => Convert::raw2att($backURL)]
             ))
-        ));
+        ]);
 
         return $controller->renderWith($this->getTemplatesFor('success'));
     }

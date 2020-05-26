@@ -18,15 +18,15 @@ use SilverStripe\Forms\FormScaffolder;
 use SilverStripe\i18n\i18n;
 use SilverStripe\i18n\i18nEntityProvider;
 use SilverStripe\ORM\Connect\MySQLSchemaManager;
-use SilverStripe\ORM\FieldType\DBClassName;
-use SilverStripe\ORM\FieldType\DBEnum;
 use SilverStripe\ORM\FieldType\DBComposite;
 use SilverStripe\ORM\FieldType\DBDatetime;
+use SilverStripe\ORM\FieldType\DBEnum;
 use SilverStripe\ORM\FieldType\DBField;
 use SilverStripe\ORM\Filters\SearchFilter;
 use SilverStripe\ORM\Queries\SQLDelete;
-use SilverStripe\ORM\Queries\SQLInsert;
 use SilverStripe\ORM\Search\SearchContext;
+use SilverStripe\ORM\UniqueKey\UniqueKeyInterface;
+use SilverStripe\ORM\UniqueKey\UniqueKeyService;
 use SilverStripe\Security\Member;
 use SilverStripe\Security\Permission;
 use SilverStripe\Security\Security;
@@ -243,7 +243,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
      *
      * @var array
      */
-    protected static $_cache_field_labels = array();
+    protected static $_cache_field_labels = [];
 
     /**
      * Base fields which are not defined in static $db
@@ -251,12 +251,12 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
      * @config
      * @var array
      */
-    private static $fixed_fields = array(
+    private static $fixed_fields = [
         'ID' => 'PrimaryKey',
         'ClassName' => 'DBClassName',
         'LastEdited' => 'DBDatetime',
         'Created' => 'DBDatetime',
-    );
+    ];
 
     /**
      * Override table name for this class. If ignored will default to FQN of class.
@@ -324,7 +324,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
      *                             Singletons don't have their defaults set.
      * @param array $queryParams List of DataQuery params necessary to lazy load, or load related objects.
      */
-    public function __construct($record = null, $isSingleton = false, $queryParams = array())
+    public function __construct($record = null, $isSingleton = false, $queryParams = [])
     {
         parent::__construct();
 
@@ -333,11 +333,11 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
 
         // Set the fields data.
         if (!$record) {
-            $record = array(
+            $record = [
                 'ID' => 0,
                 'ClassName' => static::class,
                 'RecordClassName' => static::class
-            );
+            ];
         }
 
         if ($record instanceof stdClass) {
@@ -360,7 +360,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
         }
 
         // Set $this->record to $record, but ignore NULLs
-        $this->record = array();
+        $this->record = [];
         foreach ($record as $k => $v) {
             // Ensure that ID is stored as a number and not a string
             // To do: this kind of clean-up should be done on all numeric fields, in some relatively
@@ -1375,7 +1375,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
     {
         $schema = $this->getSchema();
         $table = $schema->tableName($class);
-        $manipulation[$table] = array();
+        $manipulation[$table] = [];
 
         $changed = $this->getChangedFields();
 
@@ -1462,7 +1462,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
     protected function writeManipulation($baseTable, $now, $isNewRecord)
     {
         // Generate database manipulations for each class
-        $manipulation = array();
+        $manipulation = [];
         foreach (ClassInfo::ancestry(static::class, true) as $class) {
             $this->prepareManipulationTable($baseTable, $now, $isNewRecord, $manipulation, $class);
         }
@@ -1507,12 +1507,14 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
      *
      * @uses DataExtension->augmentWrite()
      *
-     * @param boolean $showDebug Show debugging information
-     * @param boolean $forceInsert Run INSERT command rather than UPDATE, even if record already exists
-     * @param boolean $forceWrite Write to database even if there are no changes
-     * @param boolean $writeComponents Call write() on all associated component instances which were previously
-     *                                 retrieved through {@link getComponent()}, {@link getComponents()} or
-     *                                 {@link getManyManyComponents()} (Default: false)
+     * @param boolean       $showDebug Show debugging information
+     * @param boolean       $forceInsert Run INSERT command rather than UPDATE, even if record already exists
+     * @param boolean       $forceWrite Write to database even if there are no changes
+     * @param boolean|array $writeComponents Call write() on all associated component instances which were previously
+     *                      retrieved through {@link getComponent()}, {@link getComponents()} or
+     *                      {@link getManyManyComponents()}. Default to `false`. The parameter can also be provided in
+     *                      the form of an array: `['recursive' => true, skip => ['Page'=>[1,2,3]]`. This avoid infinite
+     *                      loops when one DataObject are components of each other.
      * @return int The ID of the record
      * @throws ValidationException Exception that can be caught and handled by the calling function
      */
@@ -1563,7 +1565,15 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
 
         // Write relations as necessary
         if ($writeComponents) {
-            $this->writeComponents(true);
+            $recursive = true;
+            $skip = [];
+            if (is_array($writeComponents)) {
+                $recursive = isset($writeComponents['recursive']) && $writeComponents['recursive'];
+                $skip = isset($writeComponents['skip']) && is_array($writeComponents['skip'])
+                    ? $writeComponents['skip']
+                    : [];
+            }
+            $this->writeComponents($recursive, $skip);
         }
 
         // Clears the cache for this object so get_one returns the correct object.
@@ -1586,7 +1596,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
             foreach ($this->unsavedRelations as $name => $list) {
                 $list->changeToList($this->$name());
             }
-            $this->unsavedRelations = array();
+            $this->unsavedRelations = [];
         }
     }
 
@@ -1595,19 +1605,73 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
      * same record.
      *
      * @param bool $recursive Recursively write components
+     * @param array $skip List of DataObject references to skip
      * @return DataObject $this
      */
-    public function writeComponents($recursive = false)
+    public function writeComponents($recursive = false, $skip = [])
     {
+        // Make sure we add our current object to the skip list
+        $this->skipWriteComponents($recursive, $this, $skip);
+
+        // All our write calls have the same arguments ... just need make sure the skip list is pass by reference
+        $args = [
+            false, false, false,
+            $recursive ? ["recursive" => $recursive, "skip" => &$skip] : false
+        ];
+
         foreach ($this->components as $component) {
-            $component->write(false, false, false, $recursive);
+            if (!$this->skipWriteComponents($recursive, $component, $skip)) {
+                $component->write(...$args);
+            }
         }
 
         if ($join = $this->getJoin()) {
-            $join->write(false, false, false, $recursive);
+            if (!$this->skipWriteComponents($recursive, $join, $skip)) {
+                $join->write(...$args);
+            }
         }
 
         return $this;
+    }
+
+    /**
+     * Check if target is in the skip list and add it if it isn't.
+     * @param bool $recursive
+     * @param DataObject $target
+     * @param array $skip
+     * @return bool Whether the target is already in the list
+     */
+    private function skipWriteComponents($recursive, DataObject $target, array &$skip)
+    {
+        // skip writing component if it doesn't exist
+        if (!$target->exists()) {
+            return true;
+        }
+
+        // We only care about the skip list if our call is meant to be recursive
+        if (!$recursive) {
+            return false;
+        }
+
+        // Get our Skip array keys
+        $classname = get_class($target);
+        $id = $target->ID;
+
+        // Check if the target is in the skip list
+        if (isset($skip[$classname])) {
+            if (in_array($id, $skip[$classname])) {
+                // Skip the object
+                return true;
+            }
+        } else {
+            // This is the first object of this class
+            $skip[$classname] = [];
+        }
+
+        // Add the target to our skip list
+        $skip[$classname][] = $id;
+
+        return false;
     }
 
     /**
@@ -1641,7 +1705,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
         $queriedTables = $srcQuery->queriedTables();
         $this->extend('updateDeleteTables', $queriedTables, $srcQuery);
         foreach ($queriedTables as $table) {
-            $delete = SQLDelete::create("\"$table\"", array('"ID"' => $this->ID));
+            $delete = SQLDelete::create("\"$table\"", ['"ID"' => $this->ID]);
             $this->extend('updateDeleteTable', $delete, $table, $queriedTables, $srcQuery);
             $delete->execute();
         }
@@ -1729,14 +1793,14 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
             if ($joinID) {
                 // Prepare filter for appropriate join type
                 if ($polymorphic) {
-                    $filter = array(
+                    $filter = [
                         "{$joinField}ID" => $joinID,
                         "{$joinField}Class" => static::class,
-                    );
+                    ];
                 } else {
-                    $filter = array(
+                    $filter = [
                         $joinField => $joinID
-                    );
+                    ];
                 }
 
                 // Ensure that the selected object originates from the same stage, subsite, etc
@@ -1875,9 +1939,9 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
         // Go through all relationship configuration fields.
         $config = $this->config();
         $candidates = array_merge(
-            ($relations = $config->get('has_one')) ? $relations : array(),
-            ($relations = $config->get('has_many')) ? $relations : array(),
-            ($relations = $config->get('belongs_to')) ? $relations : array()
+            ($relations = $config->get('has_one')) ? $relations : [],
+            ($relations = $config->get('has_many')) ? $relations : [],
+            ($relations = $config->get('belongs_to')) ? $relations : []
         );
 
         if (isset($candidates[$relationName])) {
@@ -1903,7 +1967,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
      */
     public function getRelationType($component)
     {
-        $types = array('has_one', 'has_many', 'many_many', 'belongs_many_many', 'belongs_to');
+        $types = ['has_one', 'has_many', 'many_many', 'belongs_many_many', 'belongs_to'];
         $config = $this->config();
         foreach ($types as $type) {
             $relations = $config->get($type);
@@ -2001,7 +2065,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
             case 'belongs_many_many': {
                 // Get components and extra fields from parent
                 $manyMany = $remote->getSchema()->manyManyComponent($remoteClass, $remoteRelation);
-                $extraFields = $schema->manyManyExtraFieldsForComponent($remoteClass, $remoteRelation) ?: array();
+                $extraFields = $schema->manyManyExtraFieldsForComponent($remoteClass, $remoteRelation) ?: [];
 
                 // Reverse parent and component fields and create an inverse ManyManyList
                 /** @var RelationList $result */
@@ -2053,17 +2117,16 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
         // If we haven't been written yet, we can't save these relations, so use a list that handles this case
         if (!$id) {
             if (!isset($this->unsavedRelations[$componentName])) {
-                $this->unsavedRelations[$componentName] =
-                    new UnsavedRelationList(
-                        $manyManyComponent['parentClass'],
-                        $componentName,
-                        $manyManyComponent['childClass']
-                    );
+                $this->unsavedRelations[$componentName] = new UnsavedRelationList(
+                    $manyManyComponent['parentClass'],
+                    $componentName,
+                    $manyManyComponent['childClass']
+                );
             }
             return $this->unsavedRelations[$componentName];
         }
 
-        $extraFields = $schema->manyManyExtraFieldsForComponent(static::class, $componentName) ?: array();
+        $extraFields = $schema->manyManyExtraFieldsForComponent(static::class, $componentName) ?: [];
         /** @var RelationList $result */
         $result = Injector::inst()->create(
             $manyManyComponent['relationClass'],
@@ -2123,7 +2186,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
         if ($belongsTo && $classOnly) {
             return preg_replace('/(.+)?\..+/', '$1', $belongsTo);
         } else {
-            return $belongsTo ? $belongsTo : array();
+            return $belongsTo ? $belongsTo : [];
         }
     }
 
@@ -2141,7 +2204,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
         if ($hasMany && $classOnly) {
             return preg_replace('/(.+)?\..+/', '$1', $hasMany);
         } else {
-            return $hasMany ? $hasMany : array();
+            return $hasMany ? $hasMany : [];
         }
     }
 
@@ -2201,7 +2264,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
      */
     public function getDefaultSearchContext()
     {
-        return new SearchContext(
+        return SearchContext::create(
             static::class,
             $this->scaffoldSearchFields(),
             $this->defaultSearchFilters()
@@ -2226,10 +2289,10 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
     public function scaffoldSearchFields($_params = null)
     {
         $params = array_merge(
-            array(
+            [
                 'fieldClasses' => false,
                 'restrictFields' => false
-            ),
+            ],
             (array)$_params
         );
         $fields = new FieldList();
@@ -2301,13 +2364,13 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
     public function scaffoldFormFields($_params = null)
     {
         $params = array_merge(
-            array(
+            [
                 'tabbed' => false,
                 'includeRelations' => false,
                 'restrictFields' => false,
                 'fieldClasses' => false,
                 'ajaxSafe' => false
-            ),
+            ],
             (array)$_params
         );
 
@@ -2317,6 +2380,8 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
         $fs->restrictFields = $params['restrictFields'];
         $fs->fieldClasses = $params['fieldClasses'];
         $fs->ajaxSafe = $params['ajaxSafe'];
+
+        $this->extend('updateFormScaffolder', $fs, $this);
 
         return $fs->getFieldList();
     }
@@ -2357,12 +2422,12 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
      */
     public function getCMSFields()
     {
-        $tabbedFields = $this->scaffoldFormFields(array(
+        $tabbedFields = $this->scaffoldFormFields([
             // Don't allow has_many/many_many relationship editing before the record is first saved
             'includeRelations' => ($this->ID > 0),
             'tabbed' => true,
             'ajaxSafe' => true
-        ));
+        ]);
 
         $this->extend('updateCMSFields', $tabbedFields);
 
@@ -2455,7 +2520,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
         }
 
         if (!$class) {
-            $loaded = array();
+            $loaded = [];
 
             foreach ($this->record as $key => $value) {
                 if (strlen($key) > 5 && substr($key, -5) == '_Lazy' && !array_key_exists($value, $loaded)) {
@@ -2484,7 +2549,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
             $baseIDColumn => $this->record['ID']
         ])->limit(1);
 
-        $columns = array();
+        $columns = [];
 
         // Add SQL for fields, both simple & multi-value
         // TODO: This is copy & pasted from buildSQL(), it could be moved into a method
@@ -2547,7 +2612,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
      */
     public function getChangedFields($databaseFieldsOnly = false, $changeLevel = self::CHANGE_STRICT)
     {
-        $changedFields = array();
+        $changedFields = [];
 
         // Update the changed array with references to changed obj-fields
         foreach ($this->record as $k => $v) {
@@ -2594,11 +2659,11 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
 
         if ($fields) {
             foreach ($fields as $name => $level) {
-                $changedFields[$name] = array(
+                $changedFields[$name] = [
                     'before' => array_key_exists($name, $this->original) ? $this->original[$name] : null,
                     'after' => array_key_exists($name, $this->record) ? $this->record[$name] : null,
                     'level' => $level
-                );
+                ];
             }
         }
 
@@ -2615,7 +2680,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
      */
     public function isChanged($fieldName = null, $changeLevel = self::CHANGE_STRICT)
     {
-        $fields = $fieldName ? array($fieldName) : true;
+        $fields = $fieldName ? [$fieldName] : true;
         $changed = $this->getChangedFields($fields, $changeLevel);
         if (!isset($fieldName)) {
             return !empty($changed);
@@ -2807,7 +2872,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
      *
      * @return boolean True if the the member is allowed to do the given action
      */
-    public function can($perm, $member = null, $context = array())
+    public function can($perm, $member = null, $context = [])
     {
         if (!$member) {
             $member = Security::getCurrentUser();
@@ -2851,7 +2916,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
      * @param array $context Optional context
      * @return boolean|null
      */
-    public function extendedCan($methodName, $member, $context = array())
+    public function extendedCan($methodName, $member, $context = [])
     {
         $results = $this->extend($methodName, $member, $context);
         if ($results && is_array($results)) {
@@ -2913,7 +2978,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
      * affect whether (or where) this object could be created.
      * @return boolean
      */
-    public function canCreate($member = null, $context = array())
+    public function canCreate($member = null, $context = [])
     {
         $extended = $this->extendedCan(__FUNCTION__, $member, $context);
         if ($extended !== null) {
@@ -3169,9 +3234,10 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
      */
     public static function get_one($callerClass, $filter = "", $cache = true, $orderby = "")
     {
-        $SNG = singleton($callerClass);
+        /** @var DataObject $singleton */
+        $singleton = singleton($callerClass);
 
-        $cacheComponents = array($filter, $orderby, $SNG->extend('cacheKeyComponent'));
+        $cacheComponents = [$filter, $orderby, $singleton->getUniqueKeyComponents()];
         $cacheKey = md5(serialize($cacheComponents));
 
         $item = null;
@@ -3205,7 +3271,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
     public function flushCache($persistent = true)
     {
         if (static::class == self::class) {
-            self::$_cache_get_one = array();
+            self::$_cache_get_one = [];
             return $this;
         }
 
@@ -3218,7 +3284,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
 
         $this->extend('flushCache');
 
-        $this->components = array();
+        $this->components = [];
         return $this;
     }
 
@@ -3238,7 +3304,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
                 }
             }
         }
-        self::$_cache_get_one = array();
+        self::$_cache_get_one = [];
     }
 
     /**
@@ -3250,8 +3316,8 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
         DBEnum::flushCache();
         ClassInfo::reset_db_cache();
         static::getSchema()->reset();
-        self::$_cache_get_one = array();
-        self::$_cache_field_labels = array();
+        self::$_cache_get_one = [];
+        self::$_cache_field_labels = [];
     }
 
     /**
@@ -3415,10 +3481,10 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
                 }
 
                 // Build fields
-                $manymanyFields = array(
+                $manymanyFields = [
                     $parentField => "Int",
                     $childField => "Int",
-                );
+                ];
                 if (isset($extras[$component])) {
                     $manymanyFields = array_merge($manymanyFields, $extras[$component]);
                 }
@@ -3488,7 +3554,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
         // fallback to summary fields (unless empty array is explicitly specified)
         if (!$fields && !is_array($fields)) {
             $summaryFields = array_keys($this->summaryFields());
-            $fields = array();
+            $fields = [];
 
             // remove the custom getters as the search should not include them
             $schema = static::getSchema();
@@ -3516,13 +3582,13 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
         // might use the shorthand notation as well
 
         // rewrite array, if it is using shorthand syntax
-        $rewrite = array();
+        $rewrite = [];
         foreach ($fields as $name => $specOrName) {
             $identifer = (is_int($name)) ? $specOrName : $name;
 
             if (is_int($name)) {
                 // Format: array('MyFieldName')
-                $rewrite[$identifer] = array();
+                $rewrite[$identifer] = [];
             } elseif (is_array($specOrName) && ($relObject = $this->relObject($identifer))) {
                 // Format: array('MyFieldName' => array(
                 //   'filter => 'ExactMatchFilter',
@@ -3530,14 +3596,14 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
                 //   'title' => 'My Title', // optional
                 // ))
                 $rewrite[$identifer] = array_merge(
-                    array('filter' => $relObject->config()->get('default_search_filter_class')),
+                    ['filter' => $relObject->config()->get('default_search_filter_class')],
                     (array)$specOrName
                 );
             } else {
                 // Format: array('MyFieldName' => 'ExactMatchFilter')
-                $rewrite[$identifer] = array(
+                $rewrite[$identifer] = [
                     'filter' => $specOrName,
-                );
+                ];
             }
             if (!isset($rewrite[$identifer]['title'])) {
                 $rewrite[$identifer]['title'] = (isset($labels[$identifer]))
@@ -3585,7 +3651,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
 
         if (!isset(self::$_cache_field_labels[$cacheKey])) {
             $customLabels = $this->config()->get('field_labels');
-            $autoLabels = array();
+            $autoLabels = [];
 
             // get all translated static properties as defined in i18nCollectStatics()
             $ancestry = ClassInfo::ancestry(static::class);
@@ -3672,7 +3738,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
         }
 
         if (!$fields) {
-            $fields = array();
+            $fields = [];
             // try to scaffold a couple of usual suspects
             if ($this->hasField('Name')) {
                 $fields['Name'] = 'Name';
@@ -3719,7 +3785,7 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
      */
     public function defaultSearchFilters()
     {
-        $filters = array();
+        $filters = [];
 
         foreach ($this->searchableFields() as $name => $spec) {
             if (empty($spec['filter'])) {
@@ -3778,9 +3844,9 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
      *
      * @var array
      */
-    private static $casting = array(
+    private static $casting = [
         "Title" => 'Text',
-    );
+    ];
 
     /**
      * Specify custom options for a CREATE TABLE call.
@@ -3800,9 +3866,9 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
      * @var array
      * @config
      */
-    private static $create_table_options = array(
+    private static $create_table_options = [
         MySQLSchemaManager::ID => 'ENGINE=InnoDB'
-    );
+    ];
 
     /**
      * If a field is in this array, then create a database index
@@ -4122,6 +4188,28 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
     }
 
     /**
+     * Generate a unique key for data object
+     * the unique key uses the @see DataObject::getUniqueKeyComponents() extension point so unique key modifiers
+     * such as versioned or fluent are covered
+     * i.e. same data object in different stages or different locales will produce different unique key
+     *
+     * recommended use:
+     * - when you need unique key for caching purposes
+     * - when you need unique id on the front end (for example JavaScript needs to target specific element)
+     *
+     * @return string
+     * @throws Exception
+     */
+    public function getUniqueKey(): string
+    {
+        /** @var UniqueKeyInterface $service */
+        $service = Injector::inst()->get(UniqueKeyInterface::class);
+        $keyComponents = $this->getUniqueKeyComponents();
+
+        return $service->generateKey($this, $keyComponents);
+    }
+
+    /**
      * Merge single object into a list, but ensures that existing objects are not
      * re-added.
      *
@@ -4145,5 +4233,22 @@ class DataObject extends ViewableData implements DataObjectInterface, i18nEntity
         if ($joined) {
             $this->mergeRelatedObject($list, $added, $joined);
         }
+    }
+
+    /**
+     * Extension point to add more cache key components.
+     * The framework extend method will return combined values from DataExtension method(s) as an array
+     * The method on your DataExtension class should return a single scalar value. For example:
+     *
+     * public function cacheKeyComponent()
+     * {
+     *      return (string) $this->owner->MyColumn;
+     * }
+     *
+     * @return array
+     */
+    private function getUniqueKeyComponents(): array
+    {
+        return $this->extend('cacheKeyComponent');
     }
 }

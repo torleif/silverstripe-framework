@@ -75,6 +75,8 @@ class CsvBulkLoader extends BulkLoader
         try {
             $filepath = Director::getAbsFile($filepath);
             $csvReader = Reader::createFromPath($filepath, 'r');
+            $csvReader->setDelimiter($this->delimiter);
+            $csvReader->stripBom(true);
 
             $tabExtractor = function ($row, $rowOffset, $iterator) {
                 foreach ($row as &$item) {
@@ -177,7 +179,7 @@ class CsvBulkLoader extends BulkLoader
             fwrite($to, $header);
         }
 
-        $files = array();
+        $files = [];
         $files[] = $new;
 
         $count = 0;
@@ -358,7 +360,7 @@ class CsvBulkLoader extends BulkLoader
             } elseif ($obj->hasMethod("import{$fieldName}")) {
                 $obj->{"import{$fieldName}"}($val, $record);
             } else {
-                $obj->update(array($fieldName => $val));
+                $obj->update([$fieldName => $val]);
             }
         }
 

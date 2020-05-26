@@ -15,7 +15,8 @@ use SilverStripe\Core\TempFolder;
  * - BASE_URL: Full URL to the webroot, e.g. "http://my-host.com/my-webroot" (no trailing slash).
  * - BASE_PATH: Absolute path to the webroot, e.g. "/var/www/my-webroot" (no trailing slash).
  *   See Director::baseFolder(). Can be overwritten by Config::modify()->set(Director::class, 'alternate_base_folder', ).
- * - TEMP_PATH: Absolute path to temporary folder, used for manifest and template caches. Example: "/var/tmp"
+ * - TEMP_PATH: Absolute path to temporary folder, used as base for $TEMP_FOLDER. Example: "/var/tmp"
+ * - TEMP_FOLDER: folder name for manifest and template caches. Example: "silverstripe-cache-php7.2"
  *   See getTempFolder(). No trailing slash.
  * - ASSETS_DIR: Dir for assets folder. e.g. "assets"
  * - ASSETS_PATH: Full path to assets folder. e.g. "/var/www/my-webroot/assets"
@@ -42,13 +43,17 @@ if (!defined('BASE_PATH')) {
     define('BASE_PATH', call_user_func(function () {
         // Determine BASE_PATH based on the composer autoloader
         foreach (debug_backtrace() as $backtraceItem) {
-            if (isset($backtraceItem['file'])
-                && preg_match(
-                    '#^(?<base>.*)(/|\\\\)vendor(/|\\\\)composer(/|\\\\)autoload_real.php#',
-                    $backtraceItem['file'],
-                    $matches
-                )
-            ) {
+            if (!isset($backtraceItem['file'])) {
+                continue;
+            }
+
+            $matched = preg_match(
+                '#^(?<base>.*)(/|\\\\)vendor(/|\\\\)composer(/|\\\\)autoload_real.php#',
+                $backtraceItem['file'],
+                $matches
+            );
+
+            if ($matched) {
                 return realpath($matches['base']) ?: DIRECTORY_SEPARATOR;
             }
         }
@@ -144,9 +149,9 @@ if (!defined('BASE_URL')) {
         }
 
         $requestURI = $_SERVER['REQUEST_URI'];
-        // Check if /base/public or /base are in the request
+        // Check if /base/public or /base are in the request (delimited by /)
         foreach ([$baseURL, dirname($baseURL)] as $candidate) {
-            if (stripos($requestURI, $candidate) === 0) {
+            if (stripos($requestURI, rtrim($candidate, '/') . '/') === 0) {
                 return $candidate;
             }
         }

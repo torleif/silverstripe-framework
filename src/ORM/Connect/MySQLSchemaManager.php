@@ -40,10 +40,6 @@ class MySQLSchemaManager extends DBSchemaManager
         }
         if ($indexes) {
             foreach ($indexes as $k => $v) {
-                // force MyISAM if we have a fulltext index
-                if ($v['type'] === 'fulltext') {
-                    $addOptions = 'ENGINE=MyISAM';
-                }
                 $indexSchemas .= $this->getIndexSqlDefinition($k, $v) . ",\n";
             }
         }
@@ -78,7 +74,7 @@ class MySQLSchemaManager extends DBSchemaManager
             );
             return;
         }
-        $alterList = array();
+        $alterList = [];
 
         if ($newFields) {
             foreach ($newFields as $k => $v) {
@@ -104,30 +100,11 @@ class MySQLSchemaManager extends DBSchemaManager
 
         $dbID = self::ID;
         if ($alteredOptions && isset($alteredOptions[$dbID])) {
-            $indexList = $this->indexList($tableName);
-            $skip = false;
-            foreach ($indexList as $index) {
-                if ($index['type'] === 'fulltext') {
-                    $skip = true;
-                    break;
-                }
-            }
-            if ($skip) {
-                $this->alterationMessage(
-                    sprintf(
-                        "Table %s options not changed to %s due to fulltextsearch index",
-                        $tableName,
-                        $alteredOptions[$dbID]
-                    ),
-                    "changed"
-                );
-            } else {
-                $this->query(sprintf("ALTER TABLE \"%s\" %s", $tableName, $alteredOptions[$dbID]));
-                $this->alterationMessage(
-                    sprintf("Table %s options changed: %s", $tableName, $alteredOptions[$dbID]),
-                    "changed"
-                );
-            }
+            $this->query(sprintf("ALTER TABLE \"%s\" %s", $tableName, $alteredOptions[$dbID]));
+            $this->alterationMessage(
+                sprintf("Table %s options changed: %s", $tableName, $alteredOptions[$dbID]),
+                "changed"
+            );
         }
 
         $alterations = implode(",\n", $alterList);
@@ -262,12 +239,12 @@ class MySQLSchemaManager extends DBSchemaManager
         }
     }
 
-    protected static $_cache_collation_info = array();
+    protected static $_cache_collation_info = [];
 
     public function fieldList($table)
     {
         $fields = $this->query("SHOW FULL FIELDS IN \"$table\"");
-        $fieldList = array();
+        $fieldList = [];
         foreach ($fields as $field) {
             $fieldSpec = $field['Type'];
             if (!$field['Null'] || $field['Null'] == 'NO') {
@@ -346,8 +323,8 @@ class MySQLSchemaManager extends DBSchemaManager
     public function indexList($table)
     {
         $indexes = $this->query("SHOW INDEXES IN \"$table\"");
-        $groupedIndexes = array();
-        $indexList = array();
+        $groupedIndexes = [];
+        $indexList = [];
 
         foreach ($indexes as $index) {
             $groupedIndexes[$index['Key_name']]['fields'][$index['Seq_in_index']] = $index['Column_name'];
@@ -368,11 +345,11 @@ class MySQLSchemaManager extends DBSchemaManager
         if ($groupedIndexes) {
             foreach ($groupedIndexes as $index => $details) {
                 ksort($details['fields']);
-                $indexList[$index] = array(
+                $indexList[$index] = [
                     'name' => $index,
                     'columns' => $details['fields'],
                     'type' => $details['type'],
-                );
+                ];
             }
         }
 
@@ -381,7 +358,7 @@ class MySQLSchemaManager extends DBSchemaManager
 
     public function tableList()
     {
-        $tables = array();
+        $tables = [];
         foreach ($this->query("SHOW FULL TABLES WHERE Table_Type != 'VIEW'") as $record) {
             $table = reset($record);
             $tables[strtolower($table)] = $table;
@@ -395,7 +372,7 @@ class MySQLSchemaManager extends DBSchemaManager
         $classnameinfo = $this->query("DESCRIBE \"$tableName\" \"$fieldName\"")->first();
         preg_match_all("/'[^,]+'/", $classnameinfo["Type"], $matches);
 
-        $classes = array();
+        $classes = [];
         foreach ($matches[0] as $value) {
             $classes[] = stripslashes(trim($value, "'"));
         }
@@ -404,9 +381,9 @@ class MySQLSchemaManager extends DBSchemaManager
 
     public function dbDataType($type)
     {
-        $values = array(
+        $values = [
             'unsigned integer' => 'UNSIGNED'
-        );
+        ];
 
         if (isset($values[$type])) {
             return $values[$type];

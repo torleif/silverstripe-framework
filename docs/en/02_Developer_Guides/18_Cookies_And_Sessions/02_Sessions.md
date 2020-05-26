@@ -1,5 +1,8 @@
+---
 title: Sessions
 summary: A set of static methods for manipulating PHP sessions.
+icon: user
+---
 
 # Sessions
 
@@ -69,7 +72,7 @@ echo $session->get('MyValue');
 // returns 6
 
 $data = $session->get('MyArrayOfValues'); 
-// $data = array(1,2,3)
+// $data = [1,2,3]
 
 $object = unserialize($session->get('MyObject', $object)); 
 // $object = Object()
@@ -109,6 +112,19 @@ SilverStripe\Control\Session:
 ```
 
 This uses the session_name `SECSESSID` for `https` connections instead of the default `PHPSESSID`. Doing so adds an extra layer of security to your session cookie since you no longer share `http` and `https` sessions.
+
+## Relaxing checks around user agent strings
+
+Out of the box, SilverStripe will invalidate a user's session if the `User-Agent` header changes. This provides some supplemental protection against session high-jacking attacks.
+
+It is possible to disable the user agent header session validation. However, it is not recommended.
+
+To disable the user agent session check, add the following code snippet to your project's YML configuration.
+
+```yml
+SilverStripe\Control\Session:
+  strict_user_agent_check: false
+```
 
 
 ## API Documentation

@@ -12,6 +12,7 @@ use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DataObjectInterface;
 use SilverStripe\ORM\FieldType\DBField;
 use SilverStripe\ORM\FieldType\DBHTMLText;
+use SilverStripe\ORM\ValidationResult;
 use SilverStripe\View\SSViewer;
 
 /**
@@ -265,7 +266,7 @@ class FormField extends RequestHandler
      */
     protected $schemaData = [];
 
-    private static $casting = array(
+    private static $casting = [
         'FieldHolder' => 'HTMLFragment',
         'SmallFieldHolder' => 'HTMLFragment',
         'Field' => 'HTMLFragment',
@@ -279,7 +280,7 @@ class FormField extends RequestHandler
         'Title' => 'Text',
         'RightTitle' => 'Text',
         'Description' => 'HTMLFragment',
-    );
+    ];
 
     /**
      * Structured schema state representing the FormField's current data and validation.
@@ -331,7 +332,7 @@ class FormField extends RequestHandler
      * Creates a new field.
      *
      * @param string $name The internal field name, passed to forms.
-     * @param null|string $title The human-readable field label.
+     * @param null|string|SilverStripe\View\ViewableData $title The human-readable field label.
      * @param mixed $value The value of the field.
      */
     public function __construct($name, $title = null, $value = null)
@@ -560,7 +561,7 @@ class FormField extends RequestHandler
      */
     public function extraClass()
     {
-        $classes = array();
+        $classes = [];
 
         $classes[] = $this->Type();
 
@@ -678,7 +679,7 @@ class FormField extends RequestHandler
      */
     public function getAttributes()
     {
-        $attributes = array(
+        $attributes = [
             'type' => $this->getInputType(),
             'name' => $this->getName(),
             'value' => $this->Value(),
@@ -687,7 +688,7 @@ class FormField extends RequestHandler
             'disabled' => $this->isDisabled(),
             'readonly' => $this->isReadonly(),
             'autofocus' => $this->isAutofocus()
-        );
+        ];
 
         if ($this->Required()) {
             $attributes['required'] = 'required';
@@ -736,18 +737,20 @@ class FormField extends RequestHandler
         }
 
         // Create markup
-        $parts = array();
+        $parts = [];
 
         foreach ($attributes as $name => $value) {
             if ($value === true) {
-                $parts[] = sprintf('%s="%s"', $name, $name);
+                $value = $name;
             } else {
-                $strValue = Convert::raw2att($value);
-                if (!is_string($strValue)) {
-                    $strValue = json_encode($strValue);
+                if (is_scalar($value)) {
+                    $value = (string) $value;
+                } else {
+                    $value = json_encode($value);
                 }
-                $parts[] = sprintf('%s="%s"', $name, $strValue);
             }
+
+            $parts[] = sprintf('%s="%s"', Convert::raw2att($name), Convert::raw2att($value));
         }
 
         return implode(' ', $parts);
@@ -997,7 +1000,7 @@ class FormField extends RequestHandler
      * @param array $properties
      * @return DBHTMLText
      */
-    public function Field($properties = array())
+    public function Field($properties = [])
     {
         $context = $this;
 
@@ -1032,9 +1035,11 @@ class FormField extends RequestHandler
      *
      * @return DBHTMLText
      */
-    public function FieldHolder($properties = array())
+    public function FieldHolder($properties = [])
     {
         $context = $this;
+
+        $this->extend('onBeforeRenderHolder', $context, $properties);
 
         if (count($properties)) {
             $context = $this->customise($properties);
@@ -1050,7 +1055,7 @@ class FormField extends RequestHandler
      *
      * @return string
      */
-    public function SmallFieldHolder($properties = array())
+    public function SmallFieldHolder($properties = [])
     {
         $context = $this;
 
@@ -1343,13 +1348,14 @@ class FormField extends RequestHandler
     public function debug()
     {
         $strValue = is_string($this->value) ? $this->value : print_r($this->value, true);
+
         return sprintf(
             '%s (%s: %s : <span style="color:red;">%s</span>) = %s',
-            static::class,
-            $this->name,
-            $this->title,
-            $this->message,
-            $strValue
+            Convert::raw2att(static::class),
+            Convert::raw2att($this->name),
+            Convert::raw2att($this->title),
+            $this->getMessageCast() == ValidationResult::CAST_HTML ? Convert::raw2xml($this->message) : $this->message,
+            Convert::raw2att($strValue)
         );
     }
 
@@ -1621,9 +1627,11 @@ class FormField extends RequestHandler
      */
     public function getSchemaValidation()
     {
+        $validationList = [];
         if ($this->Required()) {
-            return [ 'required' => true ];
+            $validationList['required'] = true;
         }
-        return [];
+        $this->extend('updateSchemaValidation', $validationList);
+        return $validationList;
     }
 }

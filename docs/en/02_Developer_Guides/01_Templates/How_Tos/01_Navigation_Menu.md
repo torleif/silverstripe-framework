@@ -1,4 +1,7 @@
+---
 title: How to Create a Navigation Menu
+summary: Build a multi-tiered navigation UI.
+---
 
 # How to Create a Navigation Menu
 
@@ -27,7 +30,8 @@ top level menu with a nested second level using the `Menu` loop and a `Children`
         </li>
     <% end_loop %>
 </ul>
-```w
+```
+
 ## Related
 
 * [Template Syntax](../syntax)

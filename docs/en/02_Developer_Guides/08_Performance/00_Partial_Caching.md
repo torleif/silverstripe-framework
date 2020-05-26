@@ -1,5 +1,8 @@
+---
 title: Partial Caching
 summary: Cache SilverStripe templates to reduce database queries.
+icon: tachometer-alt
+---
 
 # Partial Caching
 
@@ -76,10 +79,10 @@ or edited:
 <% cached 'categorylist', $List('Category').max('LastEdited'), $List('Category').count() %>
 ```
 
-<div class="notice" markdown="1">
+[notice]
 Note the use of both `.max('LastEdited')` and `.count()` - this takes care of both the case where an object has been 
 edited since the cache was last built, and also when an object has been deleted since the cache was last built.
-</div>
+[/notice]
 
 We can also calculate aggregates on relationships. The logic for that can get a bit complex, so we can extract that on 
 to the controller so it's not cluttering up our template.
@@ -90,7 +93,7 @@ If your caching logic is complex or re-usable, you can define a method on your c
 fragment.
 
 For example, a block that shows a collection of rotating slides needs to update whenever the relationship 
-`Page::$many_many = array('Slides' => 'Slide')` changes. In `PageController`:
+`Page::$many_many = ['Slides' => 'Slide']` changes. In `PageController`:
 
 
 ```php
@@ -231,10 +234,10 @@ could also write the last example as:
 <% end_cached %>
 ```
 
-<div class="warning" markdown="1">
+[warning]
 Currently a nested cache block can not be contained within an if or loop block. The template engine will throw an error
 letting you know if you've done this. You can often get around this using aggregates or by un-nesting the block.
-</div>
+[/warning]
 
 Failing example:
 

@@ -1,3 +1,9 @@
+---
+title: Core committers
+summary: The team of contributors that has merge access to our open source repositories
+icon: users
+---
+
 # Core Committers
 The Core Committers team is reviewed approximately annually, new members are added based on quality contributions to SilverStipe code and outstanding community participation. 
 
@@ -5,7 +11,6 @@ The Core Committers team is reviewed approximately annually, new members are add
 
 * [Aaron Carlino](https://github.com/unclecheese/)
 * [Chris Joe](https://github.com/flamerohr/)
-* [Damian Mooyman](https://github.com/tractorcow/)
 * [Daniel Hensby](https://github.com/dhensby)
 * [Guy Marriott](https://github.com/ScopeyNZ)
 * [Ingo Schommer](https://github.com/chillu)

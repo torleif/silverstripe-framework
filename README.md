@@ -1,6 +1,7 @@
 ## SilverStripe Framework
 
 [![Build Status](https://api.travis-ci.org/silverstripe/silverstripe-framework.svg?branch=master)](https://travis-ci.org/silverstripe/silverstripe-framework)
+[![Build Docs](https://github.com/silverstripe/silverstripe-framework/workflows/Build%20Docs/badge.svg)](https://docs.silverstripe.org/)
 [![Latest Stable Version](https://poser.pugx.org/silverstripe/framework/version.svg)](http://www.silverstripe.org/stable-download/)
 [![Latest Unstable Version](https://poser.pugx.org/silverstripe/framework/v/unstable.svg)](https://packagist.org/packages/silverstripe/framework)
 [![codecov](https://codecov.io/gh/silverstripe/silverstripe-framework/branch/master/graph/badge.svg)](https://codecov.io/gh/silverstripe/silverstripe-framework)
@@ -28,7 +29,7 @@ If you would like to make changes to the SilverStripe core codebase, we have an 
 ## Links ##
 
  * [Server Requirements](https://doc.silverstripe.org/framework/en/installation/server-requirements)
- * [Changelogs](https://doc.silverstripe.org/framework/en/changelogs/)
+ * [Changelogs](https://docs.silverstripe.org/en/4/changelogs/)
  * [Bugtracker: Framework](https://github.com/silverstripe/silverstripe-framework/issues)
  * [Bugtracker: CMS](https://github.com/silverstripe/silverstripe-cms/issues)
  * [Bugtracker: Installer](https://github.com/silverstripe/silverstripe-installer/issues)

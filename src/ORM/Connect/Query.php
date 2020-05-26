@@ -60,7 +60,7 @@ abstract class Query implements Iterator
      */
     public function column($column = null)
     {
-        $result = array();
+        $result = [];
 
         while ($record = $this->next()) {
             if ($column) {
@@ -81,7 +81,7 @@ abstract class Query implements Iterator
      */
     public function keyedColumn()
     {
-        $column = array();
+        $column = [];
         foreach ($this as $record) {
             $val = $record[key($record)];
             $column[$val] = $val;
@@ -96,7 +96,7 @@ abstract class Query implements Iterator
      */
     public function map()
     {
-        $column = array();
+        $column = [];
         foreach ($this as $record) {
             $key = reset($record);
             $val = next($record);
@@ -168,16 +168,15 @@ abstract class Query implements Iterator
      * Iterator function implementation. Rewind the iterator to the first item and return it.
      * Makes use of {@link seek()} and {@link numRecords()}, takes care of the plumbing.
      *
-     * @return array
+     * @return void
      */
     public function rewind()
     {
         if ($this->queryHasBegun && $this->numRecords() > 0) {
             $this->queryHasBegun = false;
             $this->currentRecord = null;
-            return $this->seek(0);
+            $this->seek(0);
         }
-        return null;
     }
 
     /**

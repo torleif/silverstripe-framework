@@ -60,7 +60,7 @@ class Director implements TemplateGlobalProvider
      * @config
      * @var array
      */
-    private static $rules = array();
+    private static $rules = [];
 
     /**
      * Set current page
@@ -122,11 +122,11 @@ class Director implements TemplateGlobalProvider
     public static function test(
         $url,
         $postVars = [],
-        $session = array(),
+        $session = [],
         $httpMethod = null,
         $body = null,
-        $headers = array(),
-        $cookies = array(),
+        $headers = [],
+        $cookies = [],
         &$request = null
     ) {
         return static::mockRequest(
@@ -226,7 +226,7 @@ class Director implements TemplateGlobalProvider
         // Setup cookies
         $cookieJar = $cookies instanceof Cookie_Backend
             ? $cookies
-            : Injector::inst()->createWithArgs(Cookie_Backend::class, array($cookies ?: []));
+            : Injector::inst()->createWithArgs(Cookie_Backend::class, [$cookies ?: []]);
         $newVars['_COOKIE'] = $cookieJar->getAll(false);
         Cookie::config()->update('report_errors', false);
         Injector::inst()->registerService($cookieJar, Cookie_Backend::class);
@@ -326,9 +326,9 @@ class Director implements TemplateGlobalProvider
             // Normalise route rule
             if (is_string($controllerOptions)) {
                 if (substr($controllerOptions, 0, 2) == '->') {
-                    $controllerOptions = array('Redirect' => substr($controllerOptions, 2));
+                    $controllerOptions = ['Redirect' => substr($controllerOptions, 2)];
                 } else {
-                    $controllerOptions = array('Controller' => $controllerOptions);
+                    $controllerOptions = ['Controller' => $controllerOptions];
                 }
             }
             $request->setRouteParams($controllerOptions);
@@ -376,6 +376,33 @@ class Director implements TemplateGlobalProvider
     }
 
     /**
+     * Returns indication whether the manifest cache has been flushed
+     * in the beginning of the current request.
+     *
+     * That could mean the current active request has `?flush` parameter.
+     * Another possibility is a race condition when the current request
+     * hits the server in between another request `?flush` authorisation
+     * and a redirect to the actual flush.
+     *
+     * @return bool
+     *
+     * @deprecated 5.0 Kernel::isFlushed to be used instead
+     */
+    public static function isManifestFlushed()
+    {
+        $kernel = Injector::inst()->get(Kernel::class);
+
+        // Only CoreKernel implements this method at the moment
+        // Introducing it to the Kernel interface is a breaking change
+        if (method_exists($kernel, 'isFlushed')) {
+            return $kernel->isFlushed();
+        }
+
+        $classManifest = $kernel->getClassLoader()->getManifest();
+        return $classManifest->isFlushed();
+    }
+
+    /**
      * Return the {@link SiteTree} object that is currently being viewed. If there is no SiteTree
      * object to return, then this will return the current controller.
      *
@@ -397,16 +424,18 @@ class Director implements TemplateGlobalProvider
     }
 
     /**
-     * Turns the given URL into an absolute URL. By default non-site root relative urls will be
-     * evaluated relative to the current base_url.
+     * Converts the given path or url into an absolute url. This method follows the below rules:
+     * - Absolute urls (e.g. `http://localhost`) are not modified
+     * - Relative urls (e.g. `//localhost`) have current protocol added (`http://localhost`)
+     * - Absolute paths (e.g. `/base/about-us`) are resolved by adding the current protocol and host (`http://localhost/base/about-us`)
+     * - Relative paths (e.g. `about-us/staff`) must be resolved using one of three methods, disambiguated via the $relativeParent argument:
+     *     - BASE - Append this path to the base url (i.e. behaves as though `<base>` tag is provided in a html document). This is the default.
+     *     - REQUEST - Resolve this path to the current url (i.e. behaves as though no `<base>` tag is provided in a html document)
+     *     - ROOT - Treat this as though it was an absolute path, and append it to the protocol and hostname.
      *
-     * @param string $url URL To transform to absolute.
-     * @param string $relativeParent Method to use for evaluating relative urls.
-     * Either one of BASE (baseurl), ROOT (site root), or REQUEST (requested page).
-     * Defaults to BASE, which is the same behaviour as template url resolution.
-     * Ignored if the url is absolute or site root.
-     *
-     * @return string
+     * @param string $url The url or path to resolve to absolute url.
+     * @param string $relativeParent Disambiguation method to use for evaluating relative paths
+     * @return string The absolute url
      */
     public static function absoluteURL($url, $relativeParent = self::BASE)
     {
@@ -1018,7 +1047,7 @@ class Director implements TemplateGlobalProvider
      */
     public static function is_cli()
     {
-        return in_array(php_sapi_name(), ['cli', 'phpdbg']);
+        return Environment::isCli();
     }
 
     /**
@@ -1032,6 +1061,33 @@ class Director implements TemplateGlobalProvider
         /** @var Kernel $kernel */
         $kernel = Injector::inst()->get(Kernel::class);
         return $kernel->getEnvironment();
+    }
+
+
+    /**
+     * Returns the session environment override
+     *
+     * @internal This method is not a part of public API and will be deleted without a deprecation warning
+     *
+     * @param HTTPRequest $request
+     *
+     * @return string|null null if not overridden, otherwise the actual value
+     */
+    public static function get_session_environment_type(HTTPRequest $request = null)
+    {
+        $request = static::currentRequest($request);
+
+        if (!$request) {
+            return null;
+        }
+
+        $session = $request->getSession();
+
+        if (!empty($session->get('isDev'))) {
+            return Kernel::DEV;
+        } elseif (!empty($session->get('isTest'))) {
+            return Kernel::TEST;
+        }
     }
 
     /**
@@ -1075,13 +1131,13 @@ class Director implements TemplateGlobalProvider
      */
     public static function get_template_global_variables()
     {
-        return array(
+        return [
             'absoluteBaseURL',
             'baseURL',
             'is_ajax',
             'isAjax' => 'is_ajax',
             'BaseHref' => 'absoluteBaseURL',    //@deprecated 3.0
-        );
+        ];
     }
 
     /**

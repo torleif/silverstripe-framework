@@ -1,4 +1,6 @@
+---
 summary: Learn how to crop and resize images in templates and PHP code
+---
 
 # Image
 
@@ -212,9 +214,7 @@ SilverStripe\Core\Injector\Injector:
 
 ## Storage
 
-Manipulated images are stored as "file variants" in the same
-folder structure as the original image. The storage mechanism is described
-in the ["File Storage" guide](file_storage).
+Manipulated images are stored as "file variants" in the same folder structure as the original image. The storage mechanism is described in the ["File Storage" guide](file_storage).
 
 ## API Documentation
 

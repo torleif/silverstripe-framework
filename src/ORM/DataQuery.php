@@ -4,6 +4,7 @@ namespace SilverStripe\ORM;
 
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Convert;
+use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\Connect\Query;
 use SilverStripe\ORM\Queries\SQLConditionGroup;
@@ -21,6 +22,8 @@ use InvalidArgumentException;
 class DataQuery
 {
 
+    use Extensible;
+
     /**
      * @var string
      */
@@ -35,16 +38,16 @@ class DataQuery
      * Map of all field names to an array of conflicting column SQL
      *
      * E.g.
-     * array(
-     *   'Title' => array(
+     * [
+     *   'Title' => [
      *     '"MyTable"."Title"',
      *     '"AnotherTable"."Title"',
-     *   )
-     * )
+     *   ]
+     * ]
      *
      * @var array
      */
-    protected $collidingFields = array();
+    protected $collidingFields = [];
 
     /**
      * Allows custom callback to be registered before getFinalisedQuery is called.
@@ -130,7 +133,7 @@ class DataQuery
             // Rewrite condition groups as plain conditions before comparison
             if ($condition instanceof SQLConditionGroup) {
                 $predicate = $condition->conditionSQL($parameters);
-                $condition = array($predicate => $parameters);
+                $condition = [$predicate => $parameters];
             }
 
             // As each condition is a single length array, do a single
@@ -168,7 +171,7 @@ class DataQuery
         }
 
         // Build our intial query
-        $this->query = new SQLSelect(array());
+        $this->query = new SQLSelect([]);
         $this->query->setDistinct(true);
 
         if ($sort = singleton($this->dataClass)->config()->get('default_sort')) {
@@ -204,7 +207,7 @@ class DataQuery
             $queriedColumns = $this->queriedColumns;
         }
         if ($queriedColumns) {
-            $queriedColumns = array_merge($queriedColumns, array('Created', 'LastEdited', 'ClassName'));
+            $queriedColumns = array_merge($queriedColumns, ['Created', 'LastEdited', 'ClassName']);
         }
         $query = clone $this->query;
 
@@ -264,7 +267,7 @@ class DataQuery
             }
 
             // Select necessary columns (unless an explicitly empty array)
-            if ($selectColumns !== array()) {
+            if ($selectColumns !== []) {
                 $this->selectColumnsFromTable($query, $tableClass, $selectColumns);
             }
 
@@ -283,7 +286,7 @@ class DataQuery
         // Resolve colliding fields
         if ($this->collidingFields) {
             foreach ($this->collidingFields as $collisionField => $collisions) {
-                $caseClauses = array();
+                $caseClauses = [];
                 foreach ($collisions as $collision) {
                     if (preg_match('/^"(?<table>[^"]+)"\./', $collision, $matches)) {
                         $collisionTable = $matches['table'];
@@ -310,9 +313,9 @@ class DataQuery
                 $classNames = ClassInfo::subclassesFor($this->dataClass);
                 $classNamesPlaceholders = DB::placeholders($classNames);
                 $baseClassColumn = $schema->sqlColumnForField($baseDataClass, 'ClassName');
-                $query->addWhere(array(
+                $query->addWhere([
                     "{$baseClassColumn} IN ($classNamesPlaceholders)" => $classNames
-                ));
+                ]);
             }
         }
 
@@ -350,11 +353,10 @@ class DataQuery
      * @param SQLSelect $query
      * @param array $originalSelect
      */
-    protected function ensureSelectContainsOrderbyColumns($query, $originalSelect = array())
+    protected function ensureSelectContainsOrderbyColumns($query, $originalSelect = [])
     {
         if ($orderby = $query->getOrderBy()) {
-            $newOrderby = array();
-            $i = 0;
+            $newOrderby = [];
             foreach ($orderby as $k => $dir) {
                 $newOrderby[$k] = $dir;
 
@@ -372,7 +374,6 @@ class DataQuery
                     if (isset($originalSelect[$col])) {
                         $query->selectField($originalSelect[$col], $col);
                     }
-
                     continue;
                 }
 
@@ -402,10 +403,15 @@ class DataQuery
                     if (!in_array($qualCol, $query->getSelect())) {
                         unset($newOrderby[$k]);
 
-                        $newOrderby["\"_SortColumn$i\""] = $dir;
-                        $query->selectField($qualCol, "_SortColumn$i");
+                        // Find the first free "_SortColumnX" slot
+                        // and assign it to $key
+                        $i = 0;
+                        while (isset($newOrderby[$key = "\"_SortColumn$i\""]) || isset($orderby[$key = "\"_SortColumn$i\""])) {
+                            ++$i;
+                        }
 
-                        $i++;
+                        $newOrderby[$key] = $dir;
+                        $query->selectField($qualCol, "_SortColumn$i");
                     }
                 }
             }
@@ -430,7 +436,7 @@ class DataQuery
      * @param array $parameters Out variable for parameters required for this query
      * @return string The resulting SQL query (may be paramaterised)
      */
-    public function sql(&$parameters = array())
+    public function sql(&$parameters = [])
     {
         return $this->getFinalisedQuery()->sql($parameters);
     }
@@ -566,7 +572,7 @@ class DataQuery
                 $quotedField = $schema->sqlColumnForField($tableClass, $k);
                 if ($expressionForField) {
                     if (!isset($this->collidingFields[$k])) {
-                        $this->collidingFields[$k] = array($expressionForField);
+                        $this->collidingFields[$k] = [$expressionForField];
                     }
                     $this->collidingFields[$k][] = $quotedField;
                 } else {
@@ -737,7 +743,7 @@ class DataQuery
      * @param array $parameters Any additional parameters if the join is a parameterised subquery
      * @return $this
      */
-    public function innerJoin($table, $onClause, $alias = null, $order = 20, $parameters = array())
+    public function innerJoin($table, $onClause, $alias = null, $order = 20, $parameters = [])
     {
         if ($table) {
             $this->query->addInnerJoin($table, $onClause, $alias, $order, $parameters);
@@ -757,7 +763,7 @@ class DataQuery
      * @param array $parameters Any additional parameters if the join is a parameterised subquery
      * @return $this
      */
-    public function leftJoin($table, $onClause, $alias = null, $order = 20, $parameters = array())
+    public function leftJoin($table, $onClause, $alias = null, $order = 20, $parameters = [])
     {
         if ($table) {
             $this->query->addLeftJoin($table, $onClause, $alias, $order, $parameters);
@@ -927,7 +933,7 @@ class DataQuery
             $joinExpression = "{$foreignKeyIDColumn} = {$localIDColumn}";
         }
         $this->query->addLeftJoin(
-            $foreignTable,
+            $this->getJoinTableName($foreignClass, $foreignTable),
             $joinExpression,
             $foreignTableAliased
         );
@@ -941,7 +947,7 @@ class DataQuery
             if ($ancestorTable !== $foreignTable) {
                 $ancestorTableAliased = $foreignPrefix . $ancestorTable;
                 $this->query->addLeftJoin(
-                    $ancestorTable,
+                    $this->getJoinTableName($ancestor, $ancestorTable),
                     "\"{$foreignTableAliased}\".\"ID\" = \"{$ancestorTableAliased}\".\"ID\"",
                     $ancestorTableAliased
                 );
@@ -987,7 +993,7 @@ class DataQuery
         $foreignIDColumn = $schema->sqlColumnForField($foreignBaseClass, 'ID', $foreignPrefix);
         $localColumn = $schema->sqlColumnForField($localClass, "{$localField}ID", $localPrefix);
         $this->query->addLeftJoin(
-            $foreignBaseTable,
+            $this->getJoinTableName($foreignClass, $foreignBaseTable),
             "{$foreignIDColumn} = {$localColumn}",
             $foreignPrefix . $foreignBaseTable
         );
@@ -1002,7 +1008,7 @@ class DataQuery
                 if ($ancestorTable !== $foreignBaseTable) {
                     $ancestorTableAliased = $foreignPrefix . $ancestorTable;
                     $this->query->addLeftJoin(
-                        $ancestorTable,
+                        $this->getJoinTableName($ancestor, $ancestorTable),
                         "{$foreignIDColumn} = \"{$ancestorTableAliased}\".\"ID\"",
                         $ancestorTableAliased
                     );
@@ -1036,7 +1042,13 @@ class DataQuery
         $schema = DataObject::getSchema();
 
         if (class_exists($relationClassOrTable)) {
-            $relationClassOrTable = $schema->tableName($relationClassOrTable);
+            // class is provided
+            $relationTable = $schema->tableName($relationClassOrTable);
+            $relationTableUpdated = $this->getJoinTableName($relationClassOrTable, $relationTable);
+        } else {
+            // table is provided
+            $relationTable = $relationClassOrTable;
+            $relationTableUpdated = $relationClassOrTable;
         }
 
         // Check if already joined to component alias (skip join table for the check)
@@ -1048,10 +1060,10 @@ class DataQuery
         }
 
         // Join parent class to join table
-        $relationAliasedTable = $componentPrefix . $relationClassOrTable;
+        $relationAliasedTable = $componentPrefix . $relationTable;
         $parentIDColumn = $schema->sqlColumnForField($parentClass, 'ID', $parentPrefix);
         $this->query->addLeftJoin(
-            $relationClassOrTable,
+            $relationTableUpdated,
             "\"{$relationAliasedTable}\".\"{$parentField}\" = {$parentIDColumn}",
             $relationAliasedTable
         );
@@ -1059,7 +1071,7 @@ class DataQuery
         // Join on base table of component class
         $componentIDColumn = $schema->sqlColumnForField($componentBaseClass, 'ID', $componentPrefix);
             $this->query->addLeftJoin(
-                $componentBaseTable,
+                $this->getJoinTableName($componentBaseClass, $componentBaseTable),
                 "\"{$relationAliasedTable}\".\"{$componentField}\" = {$componentIDColumn}",
                 $componentAliasedTable
             );
@@ -1073,7 +1085,7 @@ class DataQuery
             if ($ancestorTable !== $componentBaseTable) {
                 $ancestorTableAliased = $componentPrefix . $ancestorTable;
                 $this->query->addLeftJoin(
-                    $ancestorTable,
+                    $this->getJoinTableName($ancestor, $ancestorTable),
                     "{$componentIDColumn} = \"{$ancestorTableAliased}\".\"ID\"",
                     $ancestorTableAliased
                 );
@@ -1092,11 +1104,11 @@ class DataQuery
     {
         $fieldExpression = $subtractQuery->expressionForField($field);
         $subSelect = $subtractQuery->getFinalisedQuery();
-        $subSelect->setSelect(array());
+        $subSelect->setSelect([]);
         $subSelect->selectField($fieldExpression, $field);
         $subSelect->setOrderBy(null);
         $subSelectSQL = $subSelect->sql($subSelectParameters);
-        $this->where(array($this->expressionForField($field) . " NOT IN ($subSelectSQL)" => $subSelectParameters));
+        $this->where([$this->expressionForField($field) . " NOT IN ($subSelectSQL)" => $subSelectParameters]);
 
         return $this;
     }
@@ -1139,16 +1151,47 @@ class DataQuery
 
     /**
      * Query the given field column from the database and return as an array.
+     * querying DB columns of related tables is supported but you need to make sure that the related table
+     * is already available in join
+     *
+     * @see DataList::applyRelation()
+     *
+     * example use:
+     *
+     * <code>
+     *  column("MyTable"."Title")
+     *
+     *  or
+     *
+     *  $columnName = null;
+     *  Category::get()
+     *    ->applyRelation('Products.Title', $columnName)
+     *    ->column($columnName);
+     * </code>
      *
      * @param string $field See {@link expressionForField()}.
      * @return array List of column values for the specified column
+     * @throws InvalidArgumentException
      */
     public function column($field = 'ID')
     {
         $fieldExpression = $this->expressionForField($field);
-        $query = $this->getFinalisedQuery(array($field));
+        $query = $this->getFinalisedQuery([$field]);
         $originalSelect = $query->getSelect();
-        $query->setSelect(array());
+        $query->setSelect([]);
+
+        // field wasn't recognised as a valid field from the table class hierarchy
+        // check if the field is in format "<table_name>"."<column_name>"
+        // if that's the case we may want to query related table
+        if (!$fieldExpression) {
+            if (!$this->validateColumnField($field, $query)) {
+                throw new InvalidArgumentException('Invalid column name ' . $field);
+            }
+
+            $fieldExpression = $field;
+            $field = null;
+        }
+
         $query->selectField($fieldExpression, $field);
         $this->ensureSelectContainsOrderbyColumns($query, $originalSelect);
 
@@ -1163,7 +1206,7 @@ class DataQuery
     protected function expressionForField($field)
     {
         // Prepare query object for selecting this field
-        $query = $this->getFinalisedQuery(array($field));
+        $query = $this->getFinalisedQuery([$field]);
 
         // Allow query to define the expression for this field
         $expression = $query->expressionForField($field);
@@ -1253,5 +1296,35 @@ class DataQuery
     {
         $this->dataQueryManipulators[] = $manipulator;
         return $this;
+    }
+
+    private function validateColumnField($field, SQLSelect $query)
+    {
+        // standard column - nothing to process here
+        if (strpos($field, '.') === false) {
+            return false;
+        }
+
+        $fieldData = explode('.', $field);
+        $tablePrefix = str_replace('"', '', $fieldData[0]);
+
+        // check if related table is available
+        return $query->isJoinedTo($tablePrefix);
+    }
+
+    /**
+     * Use this extension point to alter the table name
+     * useful for versioning for example
+     *
+     * @param $class
+     * @param $table
+     * @return mixed
+     */
+    private function getJoinTableName($class, $table)
+    {
+        $updated = $table;
+        $this->invokeWithExtensions('updateJoinTableName', $class, $table, $updated);
+
+        return $updated;
     }
 }

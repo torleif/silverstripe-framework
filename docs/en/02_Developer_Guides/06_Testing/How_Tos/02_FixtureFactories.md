@@ -1,4 +1,8 @@
+---
 title: How to use a FixtureFactory
+summary: Provide context to your tests with database fixtures
+icon: industry
+---
 
 # How to use a FixtureFactory
 
@@ -10,7 +14,6 @@ with information that we need.
 
 
 ```php
-use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Dev\SapphireTest;
 use SilverStripe\Core\Injector\Injector;
 
@@ -41,7 +44,7 @@ class MyObjectTest extends SapphireTest
         echo $MyObjectObj->MyProperty;
         // returns "My Default Value"
 
-        echo $myPageObj->MyOtherProperty;
+        echo $MyObjectObj->MyOtherProperty;
         // returns "My Custom Value"
     }
 }

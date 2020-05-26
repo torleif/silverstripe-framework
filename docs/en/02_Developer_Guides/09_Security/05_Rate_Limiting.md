@@ -1,9 +1,12 @@
+---
 title: Rate Limiting
 summary: SilverStripe's in built rate limiting features
+icon: tachometer-alt
+---
 
 # Rate Limiting
 
-SilverStripe Framework comes with a [Middleware](developer_guides/controllers/middlewares/) that provides rate limiting
+SilverStripe Framework comes with a [Middleware](../controllers/middlewares/) that provides rate limiting
 for the Security controller. This provides added protection to a potentially vulnerable part of a SilverStripe application
 where an attacker is free to bombard your login forms or other Security endpoints.
 

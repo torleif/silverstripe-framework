@@ -1,5 +1,8 @@
+---
 title: File storage
 summary: Describes the persistence layer of files
+icon: hdd
+---
 
 # File storage
 
@@ -136,7 +139,7 @@ assets/
             my-file.jpg
 ```
 
-## Versioned and archived files
+## Versioned and archived files {#archived}
 
 By default, when files are replaced or removed, their original file contents
 aren't retained in order to avoid bloat on the filesystem.

@@ -30,17 +30,17 @@ class URLSegmentFilter
      * @config
      * @var array See {@link setReplacements()}.
      */
-    private static $default_replacements = array(
+    private static $default_replacements = [
         '/&amp;/u' => '-and-',
         '/&/u' => '-and-',
         '/\s|\+/u' => '-', // remove whitespace/plus
         '/[_.]+/u' => '-', // underscores and dots to dashes
         '/[^A-Za-z0-9\-]+/u' => '', // remove non-ASCII chars, only allow alphanumeric and dashes
-        '/[\/\?=#]+/u' => '-', // remove forward slashes, question marks, equal signs and hashes in case multibyte is allowed (and non-ASCII chars aren't removed)
+        '/[\/\?=#:]+/u' => '-', // remove forward slashes, question marks, equal signs, hashes and colons in case multibyte is allowed (and non-ASCII chars aren't removed)
         '/[\-]{2,}/u' => '-', // remove duplicate dashes
         '/^[\-]+/u' => '', // Remove all leading dashes
         '/[\-]+$/u' => '' // Remove all trailing dashes
-    );
+    ];
 
     /**
      * Doesn't try to replace or transliterate non-ASCII filters.
@@ -56,7 +56,7 @@ class URLSegmentFilter
     /**
      * @var array See {@link setReplacements()}
      */
-    public $replacements = array();
+    public $replacements = [];
 
     /**
      * Note: Depending on the applied replacement rules, this method might result in an empty string.

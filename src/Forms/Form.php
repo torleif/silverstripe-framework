@@ -200,13 +200,13 @@ class Form extends ViewableData implements HasRequestHandler
      *
      * @var array
      */
-    protected $extraClasses = array();
+    protected $extraClasses = [];
 
     /**
      * @config
      * @var array $default_classes The default classes to apply to the Form
      */
-    private static $default_classes = array();
+    private static $default_classes = [];
 
     /**
      * @var string|null
@@ -219,23 +219,23 @@ class Form extends ViewableData implements HasRequestHandler
      *
      * @var array
      */
-    protected $attributes = array();
+    protected $attributes = [];
 
     /**
      * @var array
      */
-    protected $validationExemptActions = array();
+    protected $validationExemptActions = [];
 
     /**
      * @config
      * @var array
      */
-    private static $casting = array(
+    private static $casting = [
         'AttributesHTML' => 'HTMLFragment',
         'FormAttributes' => 'HTMLFragment',
         'FormName' => 'Text',
         'Legend' => 'HTMLFragment',
-    );
+    ];
 
     /**
      * @var FormTemplateHelper
@@ -844,14 +844,14 @@ class Form extends ViewableData implements HasRequestHandler
      */
     public function getAttributes()
     {
-        $attrs = array(
+        $attrs = [
             'id' => $this->FormName(),
             'action' => $this->FormAction(),
             'method' => $this->FormMethod(),
             'enctype' => $this->getEncType(),
             'target' => $this->target,
             'class' => $this->extraClass(),
-        );
+        ];
 
         if ($this->validator && $this->validator->getErrors()) {
             if (!isset($attrs['class'])) {
@@ -895,9 +895,13 @@ class Form extends ViewableData implements HasRequestHandler
         }
 
         // Create markup
-        $parts = array();
+        $parts = [];
         foreach ($attrs as $name => $value) {
-            $parts[] = ($value === true) ? "{$name}=\"{$name}\"" : "{$name}=\"" . Convert::raw2att($value) . "\"";
+            if ($value === true) {
+                $value = $name;
+            }
+
+            $parts[] = sprintf('%s="%s"', Convert::raw2att($name), Convert::raw2att($value));
         }
 
         return implode(' ', $parts);
@@ -1066,7 +1070,7 @@ class Form extends ViewableData implements HasRequestHandler
      */
     public function FormMethod()
     {
-        if (in_array($this->formMethod, array('GET','POST'))) {
+        if (in_array($this->formMethod, ['GET','POST'])) {
             return $this->formMethod;
         } else {
             return 'POST';
@@ -1267,6 +1271,23 @@ class Form extends ViewableData implements HasRequestHandler
         $this->setMessage($message, $type, $cast);
         $result = $this->getSessionValidationResult() ?: ValidationResult::create();
         $result->addError($message, $type, null, $cast);
+        $this->setSessionValidationResult($result);
+    }
+
+    /**
+     * Set an error message for a field in the session, for display next time this form is shown.
+     *
+     * @param string $message the text of the message
+     * @param string $fieldName Name of the field to set the error message on it.
+     * @param string $type Should be set to good, bad, or warning.
+     * @param string|bool $cast Cast type; One of the CAST_ constant definitions.
+     * Bool values will be treated as plain text flag.
+     */
+    public function sessionFieldError($message, $fieldName, $type = ValidationResult::TYPE_ERROR, $cast = ValidationResult::CAST_TEXT)
+    {
+        $this->setMessage($message, $type, $cast);
+        $result = $this->getSessionValidationResult() ?: ValidationResult::create();
+        $result->addFieldMessage($fieldName, $message, $type, null, $cast);
         $this->setSessionValidationResult($result);
     }
 
@@ -1551,7 +1572,7 @@ class Form extends ViewableData implements HasRequestHandler
     public function getData()
     {
         $dataFields = $this->fields->dataFields();
-        $data = array();
+        $data = [];
 
         if ($dataFields) {
             /** @var FormField $field */
@@ -1641,9 +1662,9 @@ class Form extends ViewableData implements HasRequestHandler
      */
     public function renderWithoutActionButton($template)
     {
-        $custom = $this->customise(array(
+        $custom = $this->customise([
             "Actions" => "",
-        ));
+        ]);
 
         if (is_string($template)) {
             $template = SSViewer::create($template);
@@ -1735,7 +1756,7 @@ class Form extends ViewableData implements HasRequestHandler
      */
     public function extraClass()
     {
-        return implode(array_unique($this->extraClasses), ' ');
+        return implode(' ', array_unique($this->extraClasses));
     }
 
     /**

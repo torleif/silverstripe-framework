@@ -1,3 +1,8 @@
+---
+title: Security
+summary: Learn how to minimise vulnerabilities in your code
+icon: user-secret
+---
 # Security
 
 ## Introduction
@@ -99,10 +104,10 @@ $members = Member::get()->where(['"Name" = ?' => $_GET['name']]);
 $members = Member::get()->where(sprintf('"Name" = %s', Convert::raw2sql($_GET['name'], true))); 
 ```
 
-<div class="warning" markdown='1'>
+[warning]
 It is NOT good practice to "be sure" and convert the data passed to the functions above manually. This might
 result in *double escaping* and alters the actually saved data (e.g. by adding slashes to your content).
-</div>
+[/warning]
 
 ### Manual escaping
 
@@ -201,10 +206,10 @@ XSS (Cross-Site-Scripting). With some basic guidelines, you can ensure your outp
 displaying a blog post in HTML from a trusted author, or escaping a search parameter from an untrusted visitor before
 redisplaying it).
 
-<div class="notice" markdown='1'>
+[notice]
 Note: SilverStripe templates do not remove tags, please use [strip_tags()](http://php.net/strip_tags) for this purpose
 or [sanitize](http://htmlpurifier.org/) it correctly.
-</div>
+[/notice]
 
 See [http://shiflett.org/articles/foiling-cross-site-attacks](http://shiflett.org/articles/foiling-cross-site-attacks)
 for in-depth information about "Cross-Site-Scripting".
@@ -346,6 +351,19 @@ template, you'll need to take care of casting and escaping yourself in PHP.
 
 The [Convert](api:SilverStripe\Core\Convert) class has utilities for this, mainly *Convert::raw2xml()* and *Convert::raw2att()* (which is
 also used by *XML* and *ATT* in template code).
+
+<div class="warning" markdown='1'>
+Most of the `Convert::raw2` methods accept arrays and do not affect array keys.
+If you serialize your data, make sure to do that before you pass it to `Convert::raw2` methods.
+
+E.g.:
+
+```php
+json_encode(Convert::raw2sql($request->getVar('multiselect')));  // WRONG!
+
+Convert::raw2sql(json_encode($request->getVar('multiselect')));  // Correct!
+```
+</div>
 
 PHP:
 
@@ -506,9 +524,8 @@ you can bypass the rules for a specific directory.
 Here's an example for a `.htaccess` file used by the Apache web server:
 
 ```
-<Files *.yml>
-    Order allow,deny
-    Allow from all
+<Files ~ "\.ya?ml$">
+    Require all granted
 </Files>
 ```
 
@@ -598,8 +615,7 @@ In addition, you can tighten password security with the following configuration 
  * `Member.password_expiry_days`: Set the number of days that a password should be valid for.
  * `Member.lock_out_after_incorrect_logins`: Number of incorrect logins after which
     the user is blocked from further attempts for the timespan defined in `$lock_out_delay_mins`
- * `Member.lock_out_delay_mins`: Minutes of enforced lockout after incorrect password attempts.
- 		Only applies if `lock_out_after_incorrect_logins` is greater than 0.
+ * `Member.lock_out_delay_mins`: Minutes of enforced lockout after incorrect password attempts. Only applies if `lock_out_after_incorrect_logins` is greater than 0.
  * `Security.remember_username`: Set to false to disable autocomplete on login form
 
 ## Clickjacking: Prevent iframe Inclusion
@@ -698,9 +714,7 @@ following in your .htaccess to ensure this behaviour is activated.
 </IfModule>
 ```
 
-In a future release this behaviour will be changed to be on by default, and this environment
-variable will be no longer necessary, thus it will be necessary to always set
-`SS_TRUSTED_PROXY_IPS` if using a proxy.
+As of SilverStripe 4, this behaviour is on by default, and the environment variable is no longer required. For correct operation, it is necessary to always set `SS_TRUSTED_PROXY_IPS` if using a proxy.
 
 ## Secure Sessions, Cookies and TLS (HTTPS)
 
@@ -711,6 +725,19 @@ director function `forceSSL()`
 use SilverStripe\Control\Director;
 
 if (!Director::isDev()) {
+    Director::forceSSL();
+}
+```
+
+`forceSSL()` will only take effect in environment types that `CanonicalURLMiddleware` is configured to apply to (by
+default, only `LIVE`). To apply this behaviour in all environment types, you'll need to update that configuration:
+
+```php
+use SilverStripe\Control\Director;
+use SilverStripe\Control\Middleware\CanonicalURLMiddleware;
+
+if (!Director::isDev()) {
+    CanonicalURLMiddleware::singleton()->setEnabledEnvs(true); // You can also specify individual environment types
     Director::forceSSL();
 }
 ```

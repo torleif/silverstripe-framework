@@ -1,5 +1,8 @@
+---
 title: Logging and Error Handling
 summary: Trap, fire and report diagnostic logs, user exceptions, warnings and errors.
+icon: exclamation-circle
+---
 
 # Logging and Error Handling
 
@@ -128,7 +131,7 @@ To send emails, you can use Monolog's [NativeMailerHandler](https://github.com/S
 SilverStripe\Core\Injector\Injector:
   Psr\Log\LoggerInterface: 
     calls:
-      MailHandler: [ pushHandler, [ %$MailHandler ] ]
+      MailHandler: [ pushHandler, [ '%$MailHandler' ] ]
   MailHandler:
       class: Monolog\Handler\NativeMailerHandler
       constructor:
@@ -155,7 +158,7 @@ To log to a file, you can use Monolog's [StreamHandler](https://github.com/Selda
 SilverStripe\Core\Injector\Injector:
   Psr\Log\LoggerInterface: 
     calls:
-      LogFileHandler: [ pushHandler, [ %$LogFileHandler ] ]
+      LogFileHandler: [ pushHandler, [ '%$LogFileHandler' ] ]
   LogFileHandler:
     class: Monolog\Handler\StreamHandler
     constructor:
@@ -195,7 +198,7 @@ Only:
 SilverStripe\Core\Injector\Injector:
   Psr\Log\LoggerInterface.errorhandler:
     calls:
-      pushDisplayErrorHandler: [ pushHandler, [ %$DisplayErrorHandler ]] 
+      pushMyDisplayErrorHandler: [ pushHandler, [ '%$DisplayErrorHandler' ]]
   DisplayErrorHandler:
     class: SilverStripe\Logging\HTTPOutputHandler
     constructor:
@@ -213,15 +216,15 @@ SilverStripe\Core\Injector\Injector:
   Psr\Log\LoggerInterface:
     calls:
       # Save system logs to file
-      pushFileLogHandler: [ pushHandler, [ %$LogFileHandler ]]
+      pushFileLogHandler: [ pushHandler, [ '%$LogFileHandler' ]]
   
   # Core error handler for system use
   Psr\Log\LoggerInterface.errorhandler:
     calls:
       # Save errors to file
-      pushFileLogHandler: [ pushHandler, [ %$LogFileHandler ]]
+      pushFileLogHandler: [ pushHandler, [ '%$LogFileHandler' ]]
       # Format and display errors in the browser/CLI 
-      pushDisplayErrorHandler: [ pushHandler, [ %$DisplayErrorHandler ]] 
+      pushMyDisplayErrorHandler: [ pushHandler, [ '%$DisplayErrorHandler' ]]
   
   # Custom handler to log to a file
   LogFileHandler:
@@ -249,11 +252,11 @@ SilverStripe\Core\Injector\Injector:
       Body: "The website server has not been able to respond to your request"
 ```
 
-<div class="info" markdown="1">
+[info]
 In addition to SilverStripe-integrated logging, it is advisable to fall back to PHP's native logging functionality. A
 script might terminate before it reaches the SilverStripe error handling, for example in the case of a fatal error. Make
 sure `log_errors` and `error_log` in your PHP ini file are configured.
-</div>
+[/info]
 
 ## Replacing default implementations
 

@@ -41,10 +41,39 @@ class SimpleResourceURLGeneratorTest extends SapphireTest
         );
     }
 
+    public function testAddSha1()
+    {
+        /** @var SimpleResourceURLGenerator $generator */
+        $generator = Injector::inst()->get(ResourceURLGenerator::class);
+        $generator->setNonceStyle('sha1');
+        $hash = sha1_file(
+            __DIR__ . '/SimpleResourceURLGeneratorTest/_fakewebroot/basemodule/client/file.js'
+        );
+        $this->assertEquals(
+            '/' . RESOURCES_DIR . '/basemodule/client/file.js?m=' . $hash,
+            $generator->urlForResource('basemodule/client/file.js')
+        );
+    }
+
+    public function testAddMd5()
+    {
+        /** @var SimpleResourceURLGenerator $generator */
+        $generator = Injector::inst()->get(ResourceURLGenerator::class);
+        $generator->setNonceStyle('md5');
+        $hash = md5_file(
+            __DIR__ . '/SimpleResourceURLGeneratorTest/_fakewebroot/basemodule/client/file.js'
+        );
+        $this->assertEquals(
+            '/' . RESOURCES_DIR . '/basemodule/client/file.js?m=' . $hash,
+            $generator->urlForResource('basemodule/client/file.js')
+        );
+    }
+
     public function testVendorResource()
     {
         /** @var SimpleResourceURLGenerator $generator */
         $generator = Injector::inst()->get(ResourceURLGenerator::class);
+        $generator->setNonceStyle('mtime');
         $mtime = filemtime(
             __DIR__ . '/SimpleResourceURLGeneratorTest/_fakewebroot/vendor/silverstripe/mymodule/client/style.css'
         );
@@ -58,6 +87,7 @@ class SimpleResourceURLGeneratorTest extends SapphireTest
     {
         /** @var SimpleResourceURLGenerator $generator */
         $generator = Injector::inst()->get(ResourceURLGenerator::class);
+        $generator->setNonceStyle('mtime');
         $mtime = filemtime(
             __DIR__ . '/SimpleResourceURLGeneratorTest/_fakewebroot/public/basemodule/css/style.css'
         );
@@ -81,6 +111,7 @@ class SimpleResourceURLGeneratorTest extends SapphireTest
     {
         /** @var SimpleResourceURLGenerator $generator */
         $generator = Injector::inst()->get(ResourceURLGenerator::class);
+        $generator->setNonceStyle('mtime');
         $module = new Module(
             __DIR__ . '/SimpleResourceURLGeneratorTest/_fakewebroot/vendor/silverstripe/mymodule/',
             __DIR__ . '/SimpleResourceURLGeneratorTest/_fakewebroot/'

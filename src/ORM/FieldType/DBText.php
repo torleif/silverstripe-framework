@@ -28,14 +28,14 @@ use InvalidArgumentException;
 class DBText extends DBString
 {
 
-    private static $casting = array(
+    private static $casting = [
         "BigSummary" => "Text",
         "ContextSummary" => "HTMLFragment", // Always returns HTML as it contains formatting and highlighting
         "FirstParagraph" => "Text",
         "FirstSentence" => "Text",
         "LimitSentences" => "Text",
         "Summary" => "Text",
-    );
+    ];
 
     /**
      * (non-PHPdoc)
@@ -194,7 +194,7 @@ class DBText extends DBString
         }
 
         // Get raw text value, but XML encode it (as we'll be merging with HTML tags soon)
-        $text = nl2br(Convert::raw2xml($this->Plain()));
+        $text = Convert::raw2xml($this->Plain());
         $keywords = Convert::raw2xml($keywords);
 
         // Find the search string
@@ -239,17 +239,17 @@ class DBText extends DBString
             $summary = $summary . $suffix;
         }
 
-        return $summary;
+        return nl2br($summary);
     }
 
     public function scaffoldFormField($title = null, $params = null)
     {
         if (!$this->nullifyEmpty) {
             // Allow the user to select if it's null instead of automatically assuming empty string is
-            return new NullableField(new TextareaField($this->name, $title));
+            return NullableField::create(TextareaField::create($this->name, $title));
         } else {
             // Automatically determine null (empty string)
-            return new TextareaField($this->name, $title);
+            return TextareaField::create($this->name, $title);
         }
     }
 

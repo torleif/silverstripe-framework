@@ -72,14 +72,14 @@ class HTTPRequest implements ArrayAccess
      *
      * @var array
      */
-    protected $getVars = array();
+    protected $getVars = [];
 
     /**
      * Contains alls HTTP POST parameters passed into this request.
      *
      * @var array
      */
-    protected $postVars = array();
+    protected $postVars = [];
 
     /**
      * HTTP Headers like "Content-Type: text/xml"
@@ -87,7 +87,7 @@ class HTTPRequest implements ArrayAccess
      * @see http://en.wikipedia.org/wiki/List_of_HTTP_headers
      * @var array
      */
-    protected $headers = array();
+    protected $headers = [];
 
     /**
      * Raw HTTP body, used by PUT and POST requests.
@@ -104,7 +104,7 @@ class HTTPRequest implements ArrayAccess
      *
      * @var array
      */
-    protected $allParams = array();
+    protected $allParams = [];
 
     /**
      * Contains an associative array of all
@@ -116,7 +116,7 @@ class HTTPRequest implements ArrayAccess
      *
      * @var array
      */
-    protected $latestParams = array();
+    protected $latestParams = [];
 
     /**
      * Contains an associative array of all arguments
@@ -133,7 +133,7 @@ class HTTPRequest implements ArrayAccess
      *
      * @var array
      */
-    protected $routeParams = array();
+    protected $routeParams = [];
 
     /**
      * @var int
@@ -154,7 +154,7 @@ class HTTPRequest implements ArrayAccess
      * @param array $postVars
      * @param string $body
      */
-    public function __construct($httpMethod, $url, $getVars = array(), $postVars = array(), $body = null)
+    public function __construct($httpMethod, $url, $getVars = [], $postVars = [], $body = null)
     {
         $this->httpMethod = strtoupper(self::detect_method($httpMethod, $postVars));
         $this->setUrl($url);
@@ -179,7 +179,7 @@ class HTTPRequest implements ArrayAccess
 
         // Normalize URL if its relative (strictly speaking), or has leading slashes
         if (Director::is_relative_url($url) || preg_match('/^\//', $url)) {
-            $this->url = preg_replace(array('/\/+/','/^\//', '/\/$/'), array('/','',''), $this->url);
+            $this->url = preg_replace(['/\/+/','/^\//', '/\/$/'], ['/','',''], $this->url);
         }
         if (preg_match('/^(.*)\.([A-Za-z][A-Za-z0-9]*)$/', $this->url, $matches)) {
             $this->url = $matches[1];
@@ -188,7 +188,7 @@ class HTTPRequest implements ArrayAccess
         if ($this->url) {
             $this->dirParts = preg_split('|/+|', $this->url);
         } else {
-            $this->dirParts = array();
+            $this->dirParts = [];
         }
 
         return $this;
@@ -343,7 +343,7 @@ class HTTPRequest implements ArrayAccess
      */
     public function isMedia()
     {
-        return in_array($this->getExtension(), array('css', 'js', 'jpg', 'jpeg', 'gif', 'png', 'bmp', 'ico'));
+        return in_array($this->getExtension(), ['css', 'js', 'jpg', 'jpeg', 'gif', 'png', 'bmp', 'ico']);
     }
 
     /**
@@ -468,6 +468,8 @@ class HTTPRequest implements ArrayAccess
      * Construct an HTTPResponse that will deliver a file to the client.
      * Caution: Since it requires $fileData to be passed as binary data (no stream support),
      * it's only advisable to send small files through this method.
+     * This function needs to be called inside the controller’s response, e.g.:
+     * <code>$this->setResponse(HTTPRequest::send_file('the content', 'filename.txt'));</code>
      *
      * @static
      * @param $fileData
@@ -521,9 +523,9 @@ class HTTPRequest implements ArrayAccess
             $pattern = $matches[2];
         }
 
-        // Special case for the root URL controller
-        if (!$pattern) {
-            return ($this->dirParts == array()) ? array('Matched' => true) : false;
+        // Special case for the root URL controller (designated as an empty string, or a slash)
+        if (!$pattern || $pattern === '/') {
+            return ($this->dirParts == []) ? ['Matched' => true] : false;
         }
 
         // Check for the '//' marker that represents the "shifting point"
@@ -540,7 +542,7 @@ class HTTPRequest implements ArrayAccess
         // Filter out any "empty" matching parts - either from an initial / or a trailing /
         $patternParts = array_values(array_filter($patternParts));
 
-        $arguments = array();
+        $arguments = [];
         foreach ($patternParts as $i => $part) {
             $part = trim($part);
 
@@ -562,7 +564,28 @@ class HTTPRequest implements ArrayAccess
 
                 /** @skipUpgrade */
                 $key = "Controller";
-                $arguments[$varName] = isset($this->dirParts[$i]) ? $this->dirParts[$i] : null;
+                if ($varName === '*' || $varName === '@') {
+                    if (isset($patternParts[$i + 1])) {
+                        user_error(sprintf('All URL params after wildcard parameter $%s will be ignored', $varName), E_USER_WARNING);
+                    }
+                    if ($varName === '*') {
+                        array_pop($patternParts);
+                        $shiftCount = sizeof($patternParts);
+                        $patternParts = array_merge($patternParts, array_slice($this->dirParts, $i));
+                        break;
+                    } else {
+                        array_pop($patternParts);
+                        $shiftCount = sizeof($patternParts);
+                        $remaining = count($this->dirParts) - $i;
+                        for ($j = 1; $j <= $remaining; $j++) {
+                            $arguments["$${j}"] = $this->dirParts[$j + $i - 1];
+                        }
+                        $patternParts = array_merge($patternParts, array_keys($arguments));
+                        break;
+                    }
+                } else {
+                    $arguments[$varName] = $this->dirParts[$i] ?? null;
+                }
                 if ($part == '$Controller'
                     && (
                         !ClassInfo::exists($arguments[$key])
@@ -599,7 +622,7 @@ class HTTPRequest implements ArrayAccess
             }
         }
 
-        if ($arguments === array()) {
+        if ($arguments === []) {
             $arguments['_matched'] = true;
         }
         return $arguments;
@@ -740,7 +763,7 @@ class HTTPRequest implements ArrayAccess
      */
     public function shift($count = 1)
     {
-        $return = array();
+        $return = [];
 
         if ($count == 1) {
             return array_shift($this->dirParts);
@@ -814,7 +837,7 @@ class HTTPRequest implements ArrayAccess
      */
     public function getAcceptMimetypes($includeQuality = false)
     {
-        $mimetypes = array();
+        $mimetypes = [];
         $mimetypesWithQuality = preg_split('#\s*,\s*#', $this->getHeader('accept'));
         foreach ($mimetypesWithQuality as $mimetypeWithQuality) {
             $mimetypes[] = ($includeQuality) ? $mimetypeWithQuality : preg_replace('/;.*/', '', $mimetypeWithQuality);
@@ -873,7 +896,7 @@ class HTTPRequest implements ArrayAccess
     public static function detect_method($origMethod, $postVars)
     {
         if (isset($postVars['_method'])) {
-            if (!in_array(strtoupper($postVars['_method']), array('GET','POST','PUT','DELETE','HEAD'))) {
+            if (!in_array(strtoupper($postVars['_method']), ['GET','POST','PUT','DELETE','HEAD'])) {
                 user_error('HTTPRequest::detect_method(): Invalid "_method" parameter', E_USER_ERROR);
             }
             return strtoupper($postVars['_method']);
@@ -883,11 +906,21 @@ class HTTPRequest implements ArrayAccess
     }
 
     /**
+     * Determines whether the request has a session
+     *
+     * @return bool
+     */
+    public function hasSession(): bool
+    {
+        return !empty($this->session);
+    }
+
+    /**
      * @return Session
      */
     public function getSession()
     {
-        if (empty($this->session)) {
+        if (!$this->hasSession()) {
             throw new BadMethodCallException("No session available for this HTTPRequest");
         }
         return $this->session;

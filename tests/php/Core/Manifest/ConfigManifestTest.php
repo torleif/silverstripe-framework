@@ -175,11 +175,11 @@ class ConfigManifestTest extends SapphireTest
     {
         /** @var Kernel $kernel */
         $kernel = Injector::inst()->get(Kernel::class);
-        foreach (array('dev', 'test', 'live') as $env) {
+        foreach (['dev', 'test', 'live'] as $env) {
             $kernel->setEnvironment($env);
             $config = $this->getConfigFixtureValue('Environment');
 
-            foreach (array('dev', 'test', 'live') as $check) {
+            foreach (['dev', 'test', 'live'] as $check) {
                 $this->assertEquals(
                     $env == $check ? $check : 'not' . $check,
                     @$config[ucfirst($check) . 'Environment'],
@@ -223,6 +223,23 @@ class ConfigManifestTest extends SapphireTest
         $this->assertTrue(
             isset($config['TwoBlocksSucceed']),
             'Fragment is included if both blocks succeed.'
+        );
+    }
+    
+    public function testExtensionLoaded()
+    {
+        $config = $this->getConfigFixtureValue('ExtensionLoaded');
+
+        $this->assertEquals(
+            'Yes',
+            @$config['SessionExtLoaded'],
+            'Only rule correctly detects loaded PHP extension'
+        );
+
+        $this->assertEquals(
+            'No',
+            @$config['DummyExtLoaded'],
+            'Except rule correctly detects not-loaded PHP extension'
         );
     }
 }

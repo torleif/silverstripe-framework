@@ -28,19 +28,19 @@ use Exception;
 class DevelopmentAdmin extends Controller
 {
 
-    private static $url_handlers = array(
+    private static $url_handlers = [
         '' => 'index',
         'build/defaults' => 'buildDefaults',
         'generatesecuretoken' => 'generatesecuretoken',
         '$Action' => 'runRegisteredController',
-    );
+    ];
 
-    private static $allowed_actions = array(
+    private static $allowed_actions = [
         'index',
         'buildDefaults',
         'runRegisteredController',
         'generatesecuretoken',
-    );
+    ];
 
     /**
      * Assume that CLI equals admin permissions
@@ -52,9 +52,21 @@ class DevelopmentAdmin extends Controller
      */
     private static $allow_all_cli = true;
 
+    /**
+     * Deny all non-cli requests (browser based ones) to dev admin
+     *
+     * @config
+     * @var bool
+     */
+    private static $deny_non_cli = false;
+
     protected function init()
     {
         parent::init();
+
+        if (static::config()->get('deny_non_cli') && !Director::is_cli()) {
+            return $this->httpError(404);
+        }
 
         // Special case for dev/build: Defer permission checks to DatabaseAdmin->init() (see #4957)
         $requestedDevBuild = (stripos($this->getRequest()->getURL(), 'dev/build') === 0)

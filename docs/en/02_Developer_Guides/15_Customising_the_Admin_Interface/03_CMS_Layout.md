@@ -1,11 +1,14 @@
+---
 title: Admin Layout
+summary: Add interactivity enhancements to the admin with Javascript
+---
 
 # CMS layout
 
 __Deprecated:__
 The following documentation regarding JavaScript layouts applies to legacy code only.
 If you're developing new functionality in React powered sections please refer to
-[ReactJS in SilverStripe](./How_Tos/Extend_CMS_Interface.md#reactjs-in-silverstripe).
+[ReactJS in SilverStripe](./how_tos/extend_cms_interface/#react-rendered-ui).
 
 The CMS markup is structured into "panels", which are the base units containing interface components (or other panels),
 as declared by the class `cms-panel`. Panels can be made collapsible, and get the ability to be resized and aligned with
@@ -34,17 +37,17 @@ This causes the framework to:
 to the layout manager)
 * trigger `redraw` on children which also cascades deeper into the hierarchy (this is framework activity)
 
-<div class="notice" markdown='1'>
+[notice]
 Caveat: `layout` is also triggered when a DOM element is replaced with AJAX in `LeftAndMain::handleAjaxResponse`. In
 this case it is triggered on the parent of the element being replaced so jLayout has a chance to rebuild its algorithms.
 Calling the top level `layout` is not enough as it will wrongly descend down the detached element's hierarchy.
-</div>
+[/notice]
 
-<div class="notice" markdown='1'>
+[notice]
 Caveat: invocation order of the `redraws` is crucial here, generally going from innermost to outermost elements.  For
 example, the tab panels have be applied in the CMS form before the form itself is layouted with its sibling panels to
 avoid incorrect dimensions.
-</div>
+[/notice]
 
 ![Layout variations](../../_images/cms-architecture.png)
 

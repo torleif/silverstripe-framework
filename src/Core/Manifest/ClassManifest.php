@@ -74,7 +74,7 @@ class ClassManifest
      *
      * @var array
      */
-    protected $classes = array();
+    protected $classes = [];
 
     /**
      * Map of lowercase class names to case-correct names
@@ -91,7 +91,7 @@ class ClassManifest
      *
      * @var array
      */
-    protected $roots = array();
+    protected $roots = [];
 
     /**
      * List of direct children for any class.
@@ -102,7 +102,7 @@ class ClassManifest
      *
      * @var array
      */
-    protected $children = array();
+    protected $children = [];
 
     /**
      * List of descendents for any class (direct + indirect children)
@@ -111,7 +111,7 @@ class ClassManifest
      *
      * @var array
      */
-    protected $descendants = array();
+    protected $descendants = [];
 
     /**
      * Map of lowercase interface name to path those files
@@ -134,7 +134,7 @@ class ClassManifest
      *
      * @var array
      */
-    protected $implementors = array();
+    protected $implementors = [];
 
     /**
      * Map of lowercase trait names to paths
@@ -168,6 +168,14 @@ class ClassManifest
     private $visitor;
 
     /**
+     * Indicates whether the cache has been
+     * regenerated in the current process
+     *
+     * @var bool
+     */
+    private $cacheRegenerated = false;
+
+    /**
      * Constructs and initialises a new class manifest, either loading the data
      * from the cache or re-scanning for classes.
      *
@@ -181,6 +189,72 @@ class ClassManifest
         $this->cacheKey = 'manifest';
     }
 
+    private function buildCache($includeTests = false)
+    {
+        if ($this->cache) {
+            return $this->cache;
+        } elseif (!$this->cacheFactory) {
+            return null;
+        } else {
+            return $this->cacheFactory->create(
+                CacheInterface::class . '.classmanifest',
+                ['namespace' => 'classmanifest' . ($includeTests ? '_tests' : '')]
+            );
+        }
+    }
+
+    /**
+     * @internal This method is not a part of public API and will be deleted without a deprecation warning
+     *
+     * @return int
+     */
+    public function getManifestTimestamp($includeTests = false)
+    {
+        $cache = $this->buildCache($includeTests);
+
+        if (!$cache) {
+            return null;
+        }
+
+        return $cache->get('generated_at');
+    }
+
+    /**
+     * @internal This method is not a part of public API and will be deleted without a deprecation warning
+     */
+    public function scheduleFlush($includeTests = false)
+    {
+        $cache = $this->buildCache($includeTests);
+
+        if (!$cache) {
+            return null;
+        }
+
+        $cache->set('regenerate', true);
+    }
+
+    /**
+     * @internal This method is not a part of public API and will be deleted without a deprecation warning
+     */
+    public function isFlushScheduled($includeTests = false)
+    {
+        $cache = $this->buildCache($includeTests);
+
+        if (!$cache) {
+            return null;
+        }
+
+        return $cache->get('regenerate');
+    }
+
+    /**
+     * @internal This method is not a part of public API and will be deleted without a deprecation warning
+     */
+    public function isFlushed()
+    {
+        return $this->cacheRegenerated;
+    }
+
     /**
      * Initialise the class manifest
      *
@@ -189,13 +263,7 @@ class ClassManifest
      */
     public function init($includeTests = false, $forceRegen = false)
     {
-        // build cache from factory
-        if ($this->cacheFactory) {
-            $this->cache = $this->cacheFactory->create(
-                CacheInterface::class . '.classmanifest',
-                ['namespace' => 'classmanifest' . ($includeTests ? '_tests' : '')]
-            );
-        }
+        $this->cache = $this->buildCache($includeTests);
 
         // Check if cache is safe to use
         if (!$forceRegen
@@ -412,7 +480,7 @@ class ClassManifest
         if (array_key_exists($lowerInterface, $this->implementors)) {
             return $this->implementors[$lowerInterface];
         } else {
-            return array();
+            return [];
         }
     }
 
@@ -441,14 +509,14 @@ class ClassManifest
         $this->children = [];
 
         $finder = new ManifestFileFinder();
-        $finder->setOptions(array(
+        $finder->setOptions([
             'name_regex' => '/^[^_].*\\.php$/',
-            'ignore_files' => array('index.php', 'cli-script.php'),
+            'ignore_files' => ['index.php', 'cli-script.php'],
             'ignore_tests' => !$includeTests,
             'file_callback' => function ($basename, $pathname, $depth) use ($includeTests, $finder) {
                 $this->handleFile($basename, $pathname, $includeTests);
             },
-        ));
+        ]);
         $finder->find($this->base);
 
         foreach ($this->roots as $root) {
@@ -458,7 +526,11 @@ class ClassManifest
         if ($this->cache) {
             $data = $this->getState();
             $this->cache->set($this->cacheKey, $data);
+            $this->cache->set('generated_at', time());
+            $this->cache->delete('regenerate');
         }
+
+        $this->cacheRegenerated = true;
     }
 
     /**
@@ -568,11 +640,11 @@ class ClassManifest
 
         // Save back to cache if configured
         if ($changed && $this->cache) {
-            $cache = array(
+            $cache = [
                 'classes' => $classes,
                 'interfaces' => $interfaces,
                 'traits' => $traits,
-            );
+            ];
             $this->cache->set($key, $cache);
         }
     }

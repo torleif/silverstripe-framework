@@ -185,7 +185,7 @@ class ConfirmedPasswordField extends FormField
      *
      * @return string
      */
-    public function Field($properties = array())
+    public function Field($properties = [])
     {
         // Build inner content
         $fieldContent = '';
@@ -341,6 +341,7 @@ class ConfirmedPasswordField extends FormField
 
         //store this for later
         $oldValue = $this->value;
+        $oldConfirmValue = $this->confirmValue;
 
         if (is_array($value)) {
             $this->value = $value['_Password'];
@@ -364,7 +365,8 @@ class ConfirmedPasswordField extends FormField
         if ($oldValue != $this->value) {
             $this->getChildren()->fieldByName($this->getName() . '[_Password]')
                 ->setValue($this->value);
-
+        }
+        if ($oldConfirmValue != $this->confirmValue) {
             $this->getChildren()->fieldByName($this->getName() . '[_ConfirmPassword]')
                 ->setValue($this->confirmValue);
         }

@@ -1,5 +1,8 @@
+---
 title: Bug Reports
 summary: Report bugs or problems with SilverStripe, feature requests or other issues.
+icon: bug
+---
 
 # Contributing Issues and Opinions
 
@@ -20,7 +23,7 @@ Before submitting a bug:
    Note that [documentation issues](https://github.com/silverstripe/silverstripe-framework/issues) are tracked in "framework" as well. 
  * Try to reproduce your issue on a [clean installation](/getting_started/composer#using-development-versions), maybe the bug has already been fixed on an unreleased branch?
  * The bugtracker is not the place to discuss enhancements, please use 
-   [UserVoice](http://silverstripe.uservoice.com) and our [community channels](https://www.silverstripe.org/community).
+   the ["feature ideas" forum category](https://forum.silverstripe.org/c/feature-ideas) and our [community channels](https://www.silverstripe.org/community).
    Only log enhancement tickets if they gather a large interest in the community
    and the enhancement is likely to be implemented in the next couple of months.
 
@@ -38,13 +41,13 @@ problem can collaborate with you to develop a fix.
 
 ## Feature Requests
 
-<div class="warning" markdown='1'>
+[warning]
 Please don't file "feature requests" as Github issues. If there's a new feature 
 you'd like to see in SilverStripe, you either need to write it yourself (and 
 [submit a pull request](/contributing/code/#step-by-step-from-forking-to-sending-the-pull-request) or convince somebody else to 
 write it for you. Any "wishlist" type issues without code attached can be 
 expected to be closed as soon as they're reviewed.
-</div>
+[/warning]
 
 In order to gain interest and feedback in your feature, we encourage you to 
 present it to the community through the [community channels](https://www.silverstripe.org/community).

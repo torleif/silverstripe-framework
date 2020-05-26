@@ -16,6 +16,8 @@ use Exception;
  * $chain->then($callback1)->then($callback2)->thenIfErrored($callback3)->execute();
  *
  * @internal This class is designed specifically for use pre-startup and may change without warning
+ *
+ * @deprecated 5.0 To be removed in SilverStripe 5.0
  */
 class ErrorControlChain
 {
@@ -33,7 +35,7 @@ class ErrorControlChain
      *
      * @var array
      */
-    protected $steps = array();
+    protected $steps = [];
 
     /**
      * True if errors should be hidden
@@ -122,10 +124,10 @@ class ErrorControlChain
      */
     public function then($callback, $onErrorState = false)
     {
-        $this->steps[] = array(
+        $this->steps[] = [
             'callback' => $callback,
             'onErrorState' => $onErrorState
-        );
+        ];
         return $this;
     }
 
@@ -183,11 +185,11 @@ class ErrorControlChain
         return stripos($message, 'memory') !== false && stripos($message, 'exhausted') !== false;
     }
 
-    static $transtable = array(
+    static $transtable = [
         'k' => 1024,
         'm' => 1048576,
         'g' => 1073741824
-    );
+    ];
 
     protected function translateMemstring($memString)
     {
@@ -216,7 +218,7 @@ class ErrorControlChain
 
     public function execute()
     {
-        register_shutdown_function(array($this, 'handleFatalError'));
+        register_shutdown_function([$this, 'handleFatalError']);
         $this->handleFatalErrors = true;
 
         $this->originalDisplayErrors = $this->getDisplayErrors();

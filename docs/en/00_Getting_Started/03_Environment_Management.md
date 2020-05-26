@@ -1,7 +1,12 @@
+---
+title: Environment Management
+summary: How to configure your server environment for Silverstripe CMS
+---
+
 # Environment management
 
 As part of website development and hosting it is natural for our sites to be hosted on several different environments.
-These can be our laptops for local development, a testing server for customers to test changes on, or a production 
+These can be our laptops for local development, a testing server for customers to test changes on, or a production
 server.
 
 For each of these environments we may require slightly different configurations for our servers. This could be our debug
@@ -12,7 +17,7 @@ provides a set of APIs and helpers.
 
 ## Security considerations
 
-Sensitive credentials should not be stored in a VCS or project code and should only be stored on the environment in 
+Sensitive credentials should not be stored in a VCS or project code and should only be stored on the environment in
 question. When using live environments the use of `.env` files is discouraged and instead one should use "first class"
 environment variables.
 
@@ -29,7 +34,7 @@ set. An example `.env` file is included in the default installer named `.env.exa
 
 ## Managing environment variables with Apache
 
-You can set "real" environment variables using Apache. Please 
+You can set "real" environment variables using Apache. Please
 [see the Apache docs for more information](https://httpd.apache.org/docs/current/env.html)
 
 ## How to access the environment variables
@@ -59,9 +64,9 @@ SilverStripe\Core\Injector\Injector:
       MyProperty: '`ENV_VAR_HERE`'
 ```
 
-<div class="info">
-<p>Environment variables cannot be used outside of Injector config as of version 4.2.</p>
-</div>
+[info]
+Environment variables cannot be used outside of Injector config as of version 4.2.
+[/info]
 
 
 ## Including an extra `.env` file
@@ -85,7 +90,7 @@ SilverStripe core environment variables are listed here, though you're free to d
 
 | Name  | Description |
 | ----  | ----------- |
-| `SS_DATABASE_CLASS` | The database class to use, MySQLPDODatabase, MySQLDatabase, MSSQLDatabase, etc. defaults to MySQLPDODatabase.|
+| `SS_DATABASE_CLASS` | The database class to use, MySQLPDODatabase, MySQLDatabase, MSSQLDatabase, etc. defaults to MySQLDatabase.|
 | `SS_DATABASE_SERVER`| The database server to use, defaulting to localhost.|
 | `SS_DATABASE_USERNAME`| The database username (mandatory).|
 | `SS_DATABASE_PASSWORD`| The database password (mandatory).|
@@ -99,7 +104,7 @@ SilverStripe core environment variables are listed here, though you're free to d
 | `SS_ENVIRONMENT_TYPE`| The environment type: dev, test or live.|
 | `SS_DEFAULT_ADMIN_USERNAME`| The username of the default admin. This is a user with administrative privileges.|
 | `SS_DEFAULT_ADMIN_PASSWORD`| The password of the default admin. This will not be stored in the database.|
-| `SS_USE_BASIC_AUTH`| Protect the site with basic auth (good for test sites).<br/>When using CGI/FastCGI with Apache, you will have to add the `RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]` rewrite rule to your `.htaccess` file|
+| `SS_USE_BASIC_AUTH`| Baseline protection for requests handled by SilverStripe. Usually requires additional security measures for comprehensive protection. See [Environment Types](/developer_guides/debugging/environment_types) for caveats.|
 | `SS_SEND_ALL_EMAILS_TO`| If you define this constant, all emails will be redirected to this address.|
 | `SS_SEND_ALL_EMAILS_FROM`| If you define this constant, all emails will be sent from this address.|
 | `SS_ERROR_LOG` | Relative path to the log file. |
@@ -114,3 +119,4 @@ SilverStripe core environment variables are listed here, though you're free to d
 | `SS_DATABASE_SSL_CERT` | Absolute path to SSL certificate file |
 | `SS_DATABASE_SSL_CA` | Absolute path to SSL Certificate Authority bundle file |
 | `SS_DATABASE_SSL_CIPHER` | Optional setting for custom SSL cipher |
+| `SS_FLUSH_ON_DEPLOY` | Try to detect deployments through file system modifications and flush on the first request after every deploy. Does not run "dev/build", but only "flush". Possible values are `true` (check for a framework PHP file modification time), `false` (no checks, skip deploy detection) or a path to a specific file or folder to be checked. See [DeployFlushDiscoverer](api:SilverStripe\Core\Startup\DeployFlushDiscoverer) for more details.<br /><br />False by default. |

@@ -2,7 +2,6 @@
 
 namespace SilverStripe\ORM\Filters;
 
-use SilverStripe\Core\Convert;
 use SilverStripe\ORM\DataQuery;
 use SilverStripe\ORM\DataObject;
 use Exception;
@@ -10,8 +9,7 @@ use Exception;
 /**
  * Filters by full-text matching on the given field.
  *
- * Full-text indexes are only available with MyISAM tables. The following column types are
- * supported:
+ * The following column types are supported:
  *   - Char
  *   - Varchar
  *   - Text
@@ -36,19 +34,19 @@ class FulltextFilter extends SearchFilter
     {
         $this->model = $query->applyRelation($this->relation);
         $predicate = sprintf("MATCH (%s) AGAINST (?)", $this->getDbName());
-        return $query->where(array($predicate => $this->getValue()));
+        return $query->where([$predicate => $this->getValue()]);
     }
 
     protected function excludeOne(DataQuery $query)
     {
         $this->model = $query->applyRelation($this->relation);
         $predicate = sprintf("NOT MATCH (%s) AGAINST (?)", $this->getDbName());
-        return $query->where(array($predicate => $this->getValue()));
+        return $query->where([$predicate => $this->getValue()]);
     }
 
     public function isEmpty()
     {
-        return $this->getValue() === array() || $this->getValue() === null || $this->getValue() === '';
+        return $this->getValue() === [] || $this->getValue() === null || $this->getValue() === '';
     }
 
 

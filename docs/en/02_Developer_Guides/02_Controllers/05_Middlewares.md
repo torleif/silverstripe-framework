@@ -1,5 +1,7 @@
+---
 title: HTTP Middlewares
 summary: Create objects for modifying request and response objects across controllers.
+---
 
 # HTTP Middlewares
 
@@ -33,7 +35,7 @@ class CustomMiddleware implements HTTPMiddleware
             return new HTTPResponse('You missed the special header', 400);
         }
 
-        // You can modify the request before 
+        // You can modify the request before
         // For example, this might force JSON responses
         $request->addHeader('Accept', 'application/json');
 
@@ -116,6 +118,41 @@ SilverStripe\Control\Director:
       Controller: %$SpecialRouteMiddleware
 ```
 
+## Application middleware
+
+Some use cases will require a middleware to run before the Silverstripe CMS has been fully bootstrapped (e.g.: Updating 
+the HTTPRequest before Silverstripe CMS routes it to a controller). This can be achieved by editing the Silverstripe 
+CMS entry point file.
+
+This file will be located in your own codebase at `public/index.php`, or directly in your project root at `index.php` 
+if your project doesn't use the public web root. Find the line that instantiate `HTTPApplication`. Call the 
+`addMiddleware` method on the `HTTPApplication` instance and pass it an instance of your middleware. This must be done
+before the request is handled.
+
+```php
+// Default application
+$kernel = new CoreKernel(BASE_PATH);
+$app = new HTTPApplication($kernel);
+
+$app->addMiddleware(new MyApplicationMiddleware());
+
+$response = $app->handle($request);
+$response->output();
+```
+
+Beware that by this point, the Silverstripe framework features you normally rely on won't be 
+available in your middleware or in `index.php` because they won't have been initialised yet. (e.g.: ORM, Injector, services configured by Injector)
+
+For example, Silverstripe's autoloading functionality won't work in `index.php`. So you might have to take additional
+steps to load your custom middleware class.
+
+[Configuring autoloading in your `composer.json` file](https://getcomposer.org/doc/04-schema.md#autoload) is the best
+way to achieve this. Remember to call `composer dump-autoload` to regenerate your autoloader. 
+
+Alternatively, you can manually include the file containing your custom middleware with a `require` call. e.g.: 
+`require __DIR__.'/../app/src/MyApplicationMiddleware.php';`
+
 ## API Documentation
 
+* [Built-in Middleware](/developer_guides/controllers/builtin_middlewares)
 * [HTTPMiddleware](api:SilverStripe\Control\Middleware\HTTPMiddleware)
