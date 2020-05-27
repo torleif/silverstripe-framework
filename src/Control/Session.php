@@ -282,6 +282,7 @@ class Session
      */
     public function start(HTTPRequest $request)
     {
+        Injector::inst()->get(LoggerInterface::class)->info('started $request');
         if ($this->isStarted()) {
             throw new BadMethodCallException("Session has already started");
         }
@@ -330,6 +331,7 @@ class Session
                     session_name($this->config()->get('cookie_name_secure'));
                 }
 
+                Injector::inst()->get(LoggerInterface::class)->info('session start');
                 session_start();
 
                 // Session start emits a cookie, but only if there's no existing session. If there is a session timeout
