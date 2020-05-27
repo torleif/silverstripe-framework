@@ -8,6 +8,11 @@
         "silverstripe",
         "framework"
     ],
+    "extra": {
+        "branch-alias": {
+            "dev-session-test": "4.5.1"
+        }
+    },
     "authors": [
         {
             "name": "SilverStripe",
