@@ -5,6 +5,9 @@ namespace SilverStripe\Control;
 use BadMethodCallException;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Dev\Deprecation;
+use Psr\Log\LoggerInterface;
+use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Dev\Backtrace;
 
 /**
  * Handles all manipulation of the session.
@@ -103,7 +106,7 @@ class Session
      * @config
      * @var array
      */
-    private static $session_ips = [];
+    private static $session_ips = array();
 
     /**
      * @config
@@ -186,7 +189,7 @@ class Session
      *
      * @var array
      */
-    protected $changedData = [];
+    protected $changedData = array();
 
     /**
      * Get user agent for this request
@@ -361,6 +364,9 @@ class Session
      */
     public function destroy($removeCookie = true)
     {
+        Injector::inst()->get(LoggerInterface::class)->info(get_class() . ': ' . Backtrace::backtrace(true));
+        Injector::inst()->get(LoggerInterface::class)->info('destroy');
+
         if (session_id()) {
             if ($removeCookie) {
                 $path = $this->config()->get('cookie_path') ?: Director::baseURL();
@@ -462,6 +468,9 @@ class Session
      */
     public function clear($name)
     {
+        
+        //Injector::inst()->get(LoggerInterface::class)->info(get_class() . ': ' . Backtrace::backtrace(true));
+        Injector::inst()->get(LoggerInterface::class)->info('clear ' . $name);
         // Get var by path
         $var = $this->nestedValue($name, $this->data);
 
@@ -486,6 +495,8 @@ class Session
      */
     public function clearAll()
     {
+        Injector::inst()->get(LoggerInterface::class)->info(get_class() . ': ' . Backtrace::backtrace(true));
+        Injector::inst()->get(LoggerInterface::class)->info('clearAll');
         if ($this->data && is_array($this->data)) {
             foreach (array_keys($this->data) as $key) {
                 $this->clear($key);
@@ -547,7 +558,7 @@ class Session
         foreach ($data as $k => $v) {
             if (is_array($v)) {
                 if (!isset($dest[$k]) || !is_array($dest[$k])) {
-                    $dest[$k] = [];
+                    $dest[$k] = array();
                 }
                 $this->recursivelyApply($v, $dest[$k]);
             } else {
@@ -648,7 +659,9 @@ class Session
      */
     public function regenerateSessionId()
     {
-        if (!headers_sent() && session_status() === PHP_SESSION_ACTIVE) {
+        Injector::inst()->get(LoggerInterface::class)->info(get_class() . ': ' . Backtrace::backtrace(true));
+        Injector::inst()->get(LoggerInterface::class)->info('regenerateSessionId');
+        if (!headers_sent()) {
             session_regenerate_id(true);
         }
     }
