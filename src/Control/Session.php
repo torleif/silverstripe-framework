@@ -210,6 +210,11 @@ class Session
      */
     public function __construct($data)
     {
+        
+        Injector::inst()->get(LoggerInterface::class)->info(get_class() . ': ' . Backtrace::backtrace(true));
+        Injector::inst()->get(LoggerInterface::class)->info('__construct session');
+        Injector::inst()->get(LoggerInterface::class)->info(print_r($data, true));
+
         if ($data instanceof Session) {
             $data = $data->getAll();
         }
@@ -270,7 +275,7 @@ class Session
     {
         $secure = Director::is_https($request) && $this->config()->get('cookie_secure');
         $name = $secure ? $this->config()->get('cookie_name_secure') : session_name();
-        return (bool)Cookie::get($name);
+        return (bool) Cookie::get($name);
     }
 
     /**
@@ -349,7 +354,7 @@ class Session
                 $data = $_SESSION;
 
                 // Merge in existing in-memory data, taking priority over session store data
-                $this->recursivelyApply((array)$this->data, $data);
+                $this->recursivelyApply((array) $this->data, $data);
             }
         }
 
@@ -394,6 +399,8 @@ class Session
      */
     public function set($name, $val)
     {
+        Injector::inst()->get(LoggerInterface::class)->info('set' . $name . ' ' . $val);
+
         $var = &$this->nestedValueRef($name, $this->data);
 
         // Mark changed
@@ -470,7 +477,7 @@ class Session
      */
     public function clear($name)
     {
-        
+
         //Injector::inst()->get(LoggerInterface::class)->info(get_class() . ': ' . Backtrace::backtrace(true));
         Injector::inst()->get(LoggerInterface::class)->info('clear ' . $name);
         // Get var by path
