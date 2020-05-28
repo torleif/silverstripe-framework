@@ -275,6 +275,7 @@ class Session
     {
         $secure = Director::is_https($request) && $this->config()->get('cookie_secure');
         $name = $secure ? $this->config()->get('cookie_name_secure') : session_name();
+        Injector::inst()->get(LoggerInterface::class)->info('sessino name ' . $name);
         return (bool) Cookie::get($name);
     }
 
