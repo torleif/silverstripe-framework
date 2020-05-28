@@ -211,10 +211,6 @@ class Session
     public function __construct($data)
     {
         
-        Injector::inst()->get(LoggerInterface::class)->info(get_class() . ': ' . Backtrace::backtrace(true));
-        Injector::inst()->get(LoggerInterface::class)->info('__construct session');
-        Injector::inst()->get(LoggerInterface::class)->info(print_r($data, true));
-
         if ($data instanceof Session) {
             $data = $data->getAll();
         }
@@ -233,6 +229,10 @@ class Session
      */
     public function init(HTTPRequest $request)
     {
+        Injector::inst()->get(LoggerInterface::class)->info(get_class() . ': ' . Backtrace::backtrace(true));
+        Injector::inst()->get(LoggerInterface::class)->info('__construct session');
+        Injector::inst()->get(LoggerInterface::class)->info(print_r( $this->data, true));
+
         if (!$this->isStarted() && $this->requestContainsSessionId($request)) {
             $this->start($request);
         }
