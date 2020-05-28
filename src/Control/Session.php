@@ -229,7 +229,7 @@ class Session
      */
     public function init(HTTPRequest $request)
     {
-        Injector::inst()->get(LoggerInterface::class)->info(get_class() . ': ' . Backtrace::backtrace(true));
+      //  Injector::inst()->get(LoggerInterface::class)->info(get_class() . ': ' . Backtrace::backtrace(true));
         Injector::inst()->get(LoggerInterface::class)->info('__construct session');
         Injector::inst()->get(LoggerInterface::class)->info(print_r( $this->data, true));
 
@@ -372,7 +372,7 @@ class Session
      */
     public function destroy($removeCookie = true)
     {
-        Injector::inst()->get(LoggerInterface::class)->info(get_class() . ': ' . Backtrace::backtrace(true));
+       // Injector::inst()->get(LoggerInterface::class)->info(get_class() . ': ' . Backtrace::backtrace(true));
         Injector::inst()->get(LoggerInterface::class)->info('destroy');
 
         if (session_id()) {
@@ -400,7 +400,7 @@ class Session
      */
     public function set($name, $val)
     {
-        Injector::inst()->get(LoggerInterface::class)->info('sessin set' . $name . ' ' );
+        Injector::inst()->get(LoggerInterface::class)->info('sessin set ' . $name . ' ' );
 
         $var = &$this->nestedValueRef($name, $this->data);
 
@@ -542,6 +542,7 @@ class Session
      */
     public function save(HTTPRequest $request)
     {
+        Injector::inst()->get(LoggerInterface::class)->info('save');
         if ($this->changedData) {
             $this->finalize($request);
 
