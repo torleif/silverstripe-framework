@@ -400,7 +400,7 @@ class Session
      */
     public function set($name, $val)
     {
-        Injector::inst()->get(LoggerInterface::class)->info('set' . $name . ' ' . $val);
+        Injector::inst()->get(LoggerInterface::class)->info('sessin set' . $name . ' ' );
 
         $var = &$this->nestedValueRef($name, $this->data);
 
