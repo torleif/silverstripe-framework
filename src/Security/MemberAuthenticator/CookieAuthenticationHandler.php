@@ -11,6 +11,9 @@ use SilverStripe\Security\Member;
 use SilverStripe\Security\RememberLoginHash;
 use SilverStripe\Security\Security;
 
+use Psr\Log\LoggerInterface;
+use SilverStripe\Core\Injector\Injector;
+
 /**
  * Authenticate a member pased on a session cookie
  */
@@ -131,6 +134,7 @@ class CookieAuthenticationHandler implements AuthenticationHandler
      */
     public function authenticateRequest(HTTPRequest $request)
     {
+        Injector::inst()->get(LoggerInterface::class)->info('c authenticateRequest');
         $uidAndToken = Cookie::get($this->getTokenCookieName());
         $deviceID = Cookie::get($this->getDeviceCookieName());
 
@@ -206,6 +210,7 @@ class CookieAuthenticationHandler implements AuthenticationHandler
      */
     public function logIn(Member $member, $persistent = false, HTTPRequest $request = null)
     {
+        Injector::inst()->get(LoggerInterface::class)->info('c logIn');
         // Cleans up any potential previous hash for this member on this device
         if ($alcDevice = Cookie::get($this->getDeviceCookieName())) {
             RememberLoginHash::get()->filter('DeviceID', $alcDevice)->removeAll();
@@ -246,6 +251,7 @@ class CookieAuthenticationHandler implements AuthenticationHandler
      */
     public function logOut(HTTPRequest $request = null)
     {
+        Injector::inst()->get(LoggerInterface::class)->info('c logOut');
         $member = Security::getCurrentUser();
         if ($member) {
             RememberLoginHash::clear($member, Cookie::get($this->getDeviceCookieName()));
@@ -264,6 +270,7 @@ class CookieAuthenticationHandler implements AuthenticationHandler
      */
     protected function clearCookies()
     {
+        Injector::inst()->get(LoggerInterface::class)->info('c clearCookies');
         $secure = $this->getTokenCookieSecure();
         Cookie::set($this->getTokenCookieName(), null, null, null, null, $secure);
         Cookie::set($this->getDeviceCookieName(), null, null, null, null, $secure);
