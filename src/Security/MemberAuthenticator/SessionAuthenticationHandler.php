@@ -8,6 +8,8 @@ use SilverStripe\Control\Director;
 use SilverStripe\Control\HTTPRequest;
 use SilverStripe\Security\AuthenticationHandler;
 use SilverStripe\Security\Member;
+use Psr\Log\LoggerInterface;
+use SilverStripe\Core\Injector\Injector;
 
 /**
  * Authenticate a member pased on a session cookie
@@ -45,6 +47,7 @@ class SessionAuthenticationHandler implements AuthenticationHandler
      */
     public function authenticateRequest(HTTPRequest $request)
     {
+        Injector::inst()->get(LoggerInterface::class)->info('authenticateRequest');
         $session = $request->getSession();
 
         // Sessions are only started when a session cookie is detected
@@ -70,6 +73,7 @@ class SessionAuthenticationHandler implements AuthenticationHandler
      */
     public function logIn(Member $member, $persistent = false, HTTPRequest $request = null)
     {
+        Injector::inst()->get(LoggerInterface::class)->info('logIn');
         static::regenerateSessionId();
         $request = $request ?: Controller::curr()->getRequest();
         $request->getSession()->set($this->getSessionVariable(), $member->ID);
@@ -86,6 +90,7 @@ class SessionAuthenticationHandler implements AuthenticationHandler
      */
     protected static function regenerateSessionId()
     {
+        Injector::inst()->get(LoggerInterface::class)->info('regenerateSessionId');
         if (!Member::config()->get('session_regenerate_id')) {
             return;
         }
@@ -102,6 +107,7 @@ class SessionAuthenticationHandler implements AuthenticationHandler
         // @ is to supress win32 warnings/notices when session wasn't cleaned up properly
         // There's nothing we can do about this, because it's an operating system function!
         if (!headers_sent($file, $line)) {
+            Injector::inst()->get(LoggerInterface::class)->info('session_regenerate_id');
             @session_regenerate_id(true);
         }
     }
@@ -111,6 +117,7 @@ class SessionAuthenticationHandler implements AuthenticationHandler
      */
     public function logOut(HTTPRequest $request = null)
     {
+        Injector::inst()->get(LoggerInterface::class)->info('logOut');
         $request = $request ?: Controller::curr()->getRequest();
         $request->getSession()->restart($request);
     }
